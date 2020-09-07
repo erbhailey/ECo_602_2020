@@ -1,0 +1,116 @@
+---
+title: "Analysis of Environmental Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+----------- LAB 2 --------------
+
+Question 1
+```{r L2 Q1}
+n = 12345
+vec_1 = sample(12, n, replace = TRUE)
+head(vec_1)
+
+vec_2 <- vec_1 == 3 # boolean function where values are T if element in vec_1 = 3 and F if otherwise.
+
+vec_1[vec_2] # retrieve elements for which vec_2 is TRUE (where vec_1 = 3)
+```
+Q1.1: vec_2 <- vec_1 == 3
+Q1.2: vec_1 contains over 10,000 elements, so it's much more efficient to select values equal to 3 using boolean operators. Why do the work when you can let a computer do it for you?
+
+
+
+Question 2
+```{r L2 Q2}
+n = 12345
+vec_1 = sample(12, n, replace = TRUE)
+head(vec_1)
+
+length(vec_1)
+sum(vec_1 == 3)
+
+n = 10
+vec_1 = sample(12, n, replace = TRUE)
+paste0("Sum of elements with value 3: ", sum(vec_1 == 3))
+
+```
+Q2.1: The return value of the last code chunk changed each time the code was run. A logical test is a safe way to select entries with a value of 3 because the logical test will accurately identify whether or not the elements in a vector are equal to a given value - and the result of the logical test will change with respect to the data to which the test is applied.
+
+Q2.2: Manually chooseing indices by visual inspection is not only inefficient and potentially erroneous - it also makes the code written extremely inflexible (as the code is specific to the data set to which it was originally applied). If a researcher wanted to write a code and then substitute the original data set with different data, the use of logical tests (rather than numerical subsetting, for example), would allow for the test to "fit" to the new data rather than necessitate a change in code. Logical tests are highly versatile and allow for collaboration and modification of data without custom building code to a particular data set and modifying the code everytime new data are considered. 
+
+
+
+Question 3
+```{r L2 Q3}
+for(i in 1:10){
+  print(paste0("This is loop iteration: ", i))
+}
+
+
+```
+Q3: 
+for(i in 1:10){
+  print(paste0("This is loop iteration: ", i))
+}
+
+
+Question 4
+```{r L2 Q4}
+n = 9
+for(i in 0:n){
+  print(i)
+}
+
+```
+Q4: 
+n = 9
+for (i in 0:n){
+  print(i)
+}
+
+
+Question 5
+```{r L2 Q5}
+n = 17
+vec_1 <- sample(10, n, replace = TRUE)
+for(i in 1:n){
+  print(paste0("The element of vec_1 at index ", i, " is ", vec_1[[i]]))
+}
+
+```
+Q5:
+n = 17
+vec_1 <- sample(10, n, replace = TRUE)
+for(i in 1:n){
+  print(paste0("The element of vec_1 at index ", i, " is ", vec_1[[i]]))
+  
+
+Question 6
+```{r L2 Q6}
+# write a function that creates a vector of n random integers between the values of min and max, then loops through the elements of the vector and prints a message with the index of the element and its value. n has no default, min defaults to 1, and max defaults to 10. 
+
+create_and_print_vec <- function(n, min = 1, max = 10){
+  vec = sample(min:max, size = n, replace = TRUE)
+  for(i in 1:n)
+  print(paste0("The element at index ", i, " is ", vec[[i]]))
+}
+
+create_and_print_vec(18)
+
+```
+Q6:
+create_and_print_vec <- function(n, min = 1, max = 10){
+  vec = sample(min:max, size = n, replace = TRUE)
+  for(i in 1:n)
+  print(paste0("The element at index ", i, " is ", vec[[i]]))
+}
+
+
+
+
+
