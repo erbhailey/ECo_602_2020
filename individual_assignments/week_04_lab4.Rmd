@@ -1,0 +1,387 @@
+---
+title: 'Week 4 Lab: Uncertainty and Error'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r density functions}
+fakenums <- c(-1.96, -1, 0, 1.96)
+dnorm(fakenums) # probability density
+pnorm(fakenums) # cumulative probability density
+qnorm(fakenums) # quantile function
+rnorm(n) # function to create random, normally-distributed numbers
+```
+
+```{r plotting a PDF curve}
+x = seq(-3, 3, length.out = 1000)
+y = dnorm(x)
+
+plot(x, y, main = "Normal PDF", type = "l")
+abline(h = 0)
+
+plot(fakenums, pnorm(fakenums), main = "fake PDF", type = "l")
+```
+
+
+Measuring error: below I will build a function to calculate residuals.
+Below is a custom function to fit a linear slope to a regression plot.
+```{r regression custom functions}
+line_point_slope = function(x, x1, y1, slope)
+{
+  get_y_intercept = 
+    function(x1, y1, slope) 
+      return(-(x1 * slope) + y1)
+  
+  linear = 
+    function(x, yint, slope) 
+      return(yint + x * slope)
+  
+  return(linear(x, get_y_intercept(x1, y1, slope), slope))
+}
+```
+
+```{r phake linear model}
+set.seed(123) # set.seed() forces generation fo the same sequence each time its run (n stands for a distinct sequence, I think...)
+n = 17
+slope = 0.7
+intcp = 0.2
+
+guess_x = 6
+guess_y = 4
+guess_slope = 0.72
+
+x = runif(n = n, min = 1, max = 10)
+y = rnorm(n = n, mean = slope * x + intcp)
+
+plot(x, y, pch = 16)
+curve(line_point_slope(x, guess_x, guess_y, guess_slope), add = T)
+```
+
+Create a data.frame with random values. 
+```{r residuals}
+n_pts = 10
+x_min = 1
+x_max = 10
+x = runif(n = n_pts, min = x_min, max = x_max)
+
+dat = data.frame(x = x, y_observed = rnorm(n_pts))
+
+plot(y_observed ~ x, data = dat, pch = 8)
+
+
+guess_x = 0
+guess_y = -0.3
+guess_slope = 0.14
+
+plot(y_observed ~ x, data = dat, pch = 8)
+curve(line_point_slope(x, guess_x, guess_y, guess_slope), add = T)
+
+
+# finding residuals...
+
+y_predicted <- line_point_slope(dat$x, guess_x, guess_y, guess_slope) # predicted y values based on my estimated model parameters
+
+datbind <- cbind(dat, y_predicted) # add predicted values as column to data.frame
+
+# calculate residuals
+resids <- as.vector(datbind$y_observed-datbind$y_predicted)
+datbind <- cbind(datbind, resids)
+sum(resids) # there is more error above the proposed model than below it. this should be as close to possible as zero. 
+sum(abs(resids)) # this value should also be as small as possible (total error)
+```
+
+
+
+
+
+QUESTION 1: 
+```{r create normal distribution vectors}
+fakemean <- 10.4
+fakesd <- 2.4
+
+norm_17 <- rnorm(17, mean = fakemean, sd = fakesd)
+norm_30 <- rnorm(30, mean = fakemean, sd = fakesd)
+norm_300 <- rnorm(300, mean = fakemean, sd = fakesd)
+```
+Question 1:
+Create three vectors of normally-distributed random numbers, norm_17, norm_30, and norm_300.
+You should tell R that you want your random deviates have a mean of 10.4 and a standard deviation of 2.4.
+norm_17 should have 17 elements, norm_30 should have 30 elements, and norm_300 should have 300 elements.
+Q1.1 Paste the R code you used to create your vectors into the text entry box.
+
+fakemean <- 10.4
+fakesd <- 2.4
+norm_17 <- rnorm(17, mean = fakemean, sd = fakesd)
+norm_30 <- rnorm(30, mean = fakemean, sd = fakesd)
+norm_300 <- rnorm(300, mean = fakemean, sd = fakesd)
+
+
+
+QUESTION 2: 
+```{r q1 histograms}
+hist(norm_17)
+hist(norm_30)
+hist(norm_300)
+```
+Question 2: Normal Density 2
+Consider the histograms you created in the previous question.
+Q2.1 Qualitatively describe the differences in the patterns you observe.
+Q2.2 Explain why they histograms are different.
+
+The histogram of norm_17 has a large number of values on its left tail. The histogram is skewed left. The histogram of norm_30 looks slightly more normal, but there are no values between 4 and 6. The histogram of norm_300 looks the most normal, though it is still slightly skewed left. 
+
+These histograms are different because (1) norm_17, norm_30, and norm_300 are all randomly generated vectors, so there will be some inherent variability between them, and (2) the sample size of these vectors are all different. The greater the sample size, the closer its distribution will be to the defined normal distribution. The "randomness" between each vector is the same, but the relative "randomness" (i.e. in relation to sample size) will be smaller. As a simplified analogy, this is a lot like flipping a coin. It is far more likely to flip three heads when four coins are tossed than it is to flip three thousand heads when four thousand coins are tossed. 
+
+
+
+QUESTION 3
+```{r question 3}
+x = seq((fakemean-10), (fakemean+10), length.out = 1000)
+y = dnorm(x, mean = fakemean, sd = fakesd)
+
+plot(x, y, main = "Normal PDF (mean = 10.4, sd = 2.4)", type = "l")
+
+```
+Question 3: Normal Density 1
+Remember the code I used to create a plot of the density function of a standard normal distribution:
+Instructions
+Use the code above as a template to plot a density curve for a normal distribution with:
+mean = 10.4
+standard deviation = 2.4
+Include an informative title that states the mean and standard deviation values you used.
+Save your figure to a file called norm_1.png.
+Q3.1 (1 pt). What are the parameters and their values for the standard Normal distribution?
+Q3.2 (2 pts). Paste the R code you used to create and save your figure into the text-entry window.
+Q3.1 (1 pts). Paste the image file of your figure into the file entry box.
+
+A standard normal distribution has a mean of 0 and a standard devation of 1. This normal distribution was designed to have a mean of 10.4 and a standard deviation of 2.4. 
+
+x = seq((fakemean-10), (fakemean+10), length.out = 1000)
+y = dnorm(x, mean = fakemean, sd = fakesd)
+plot(x, y, main = "Normal PDF (mean = 10.4, sd = 2.4)", type = "l")
+
+
+
+QUESTION 4:
+```{r random scatterplots}
+par(mfrow = c(2,2))
+
+set.seed(145)
+n_pts1 = 10
+x_min1 = 1
+x_max1 = 10
+y_min1 = 3
+y_max1 = 16
+x1 = runif(n = n_pts1, min = x_min1, max = x_max1)
+y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
+dat1 = data.frame(x = x1, y = y1)
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+
+set.seed(132)
+n_pts2 = 23
+x_min2 = -2
+x_max2 = 10
+y_min2 = 1
+y_max2 = 5
+x2 = runif(n = n_pts2, min = x_min2, max = x_max2)
+y2 = runif(n = n_pts2, min = y_min2, max = y_max2)
+dat2 = data.frame(x = x2, y = y2)
+plot(y ~ x, data = dat2, pch = 2, main = "Random B")
+
+set.seed(145)
+n_pts3 = 18
+x_min3 = -35
+x_max3 = -12
+y_min3 = -7
+y_max3 = 32
+x3 = runif(n = n_pts3, min = x_min3, max = x_max3)
+y3 = runif(n = n_pts3, min = y_min3, max = y_max3)
+dat3 = data.frame(x = x3, y = y3)
+plot(y ~ x, data = dat3, pch = 5, main = "Random C")
+
+set.seed(145)
+n_pts4 = 40
+x_min4 = 1
+x_max4 = 180
+y_min4 = 57
+y_max4 = 127
+x4 = runif(n = n_pts4, min = x_min4, max = x_max4)
+y4 = runif(n = n_pts4, min = y_min4, max = y_max4)
+dat4 = data.frame(x = x4, y = y4)
+plot(y ~ x, data = dat4, pch = 7, main = "Random D")
+
+dev.off()
+```
+
+Question 4: Simulated Data 1
+Instructions:
+Review the section of the lab instructions in which I created a data.frame of random data.
+Experiment with creating and plotting random data:
+Try different numbers of points.
+Try different plotting characters.
+Try using set.seed() with different seed values.
+Create scatterplots of four of your favorite random data sets.
+They should be in a single frame, arranged in a 2 by 2 grid.
+Save your figure to a file called sim_data_scatterplots.png
+Q4.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
+Q4.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
+Q4.3 (1 pt.) Paste your figure file into the file entry box.
+
+par(mfrow = c(2,2))
+# then I ran the code for each of the four scatterplots
+# then I ran dev.off()
+
+set.seed(132)
+n_pts2 = 23
+x_min2 = -2
+x_max2 = 10
+y_min2 = 1
+y_max2 = 5
+x2 = runif(n = n_pts2, min = x_min2, max = x_max2)
+y2 = runif(n = n_pts2, min = y_min2, max = y_max2)
+dat2 = data.frame(x = x2, y = y2)
+plot(y ~ x, data = dat2, pch = 2, main = "Random B")
+
+
+
+QUESTION 5:
+```{r model fit 1}
+
+line_point_slope = function(x, x1, y1, slope)
+{
+  get_y_intercept = 
+    function(x1, y1, slope) 
+      return(-(x1 * slope) + y1)
+  
+  linear = 
+    function(x, yint, slope) 
+      return(yint + x * slope)
+  
+  return(linear(x, get_y_intercept(x1, y1, slope), slope))
+}
+
+set.seed(145)
+n_pts1 = 10
+x_min1 = 1
+x_max1 = 10
+y_min1 = 3
+y_max1 = 16
+x1 = runif(n = n_pts1, min = x_min1, max = x_max1)
+y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
+dat1 = data.frame(x = x1, y = y1)
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+
+# linear regression estimation below
+guess_x1 = 5
+guess_y1 = 4
+guess_slope1 = 1.9
+
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
+
+```
+
+Question 5: Model Fit 1
+Instructions:
+Choose one of your datasets from the previous question.
+Using the code in the lab walkthrough, visually fit a linear deterministic function through the data. Make sure you save your parameters to variables so you can use them in the next question.
+Create a plot of your simulated data and the line of your fitted model.
+Q5.1 (3 pts.) Paste the R code you used to fit your model.
+Q5.2 (1 pt.) Paste your figure file into the file entry box.
+
+line_point_slope = function(x, x1, y1, slope)
+{
+  get_y_intercept = 
+    function(x1, y1, slope) 
+      return(-(x1 * slope) + y1)
+  
+  linear = 
+    function(x, yint, slope) 
+      return(yint + x * slope)
+  
+  return(linear(x, get_y_intercept(x1, y1, slope), slope))
+}
+
+set.seed(145)
+n_pts1 = 10
+x_min1 = 1
+x_max1 = 10
+y_min1 = 3
+y_max1 = 16
+x1 = runif(n = n_pts1, min = x_min1, max = x_max1)
+y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
+dat1 = data.frame(x = x1, y = y1)
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+
+# linear regression estimation below
+guess_x1 = 5
+guess_y1 = 4
+guess_slope1 = 1.9
+
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
+
+
+
+
+QUESTION 6:
+```{r residuals 1}
+set.seed(145)
+n_pts1 = 10
+x_min1 = 1
+x_max1 = 10
+y_min1 = 3
+y_max1 = 16
+x1 = runif(n = n_pts1, min = x_min1, max = x_max1)
+y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
+dat1 = data.frame(x = x1, y = y1)
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
+
+# finding residuals...
+y_predicted1 <- line_point_slope(dat1$x, guess_x1, guess_y1, guess_slope1) # predicted y values based on my estimated model parameters
+datbind1 <- cbind(dat1, y_predicted1) # add predicted values as column to data.frame
+
+# calculate residuals
+resids1 <- as.vector(datbind1$y-datbind1$y_predicted1)
+datbind1A <- cbind(datbind1, resids1)
+sum(resids1) # there is more error above the proposed model than below it. this should be as close to possible as zero. 
+sum(abs(resids1)) # this value should also be as small as possible (total error)
+```
+Question 6: Residuals 1
+Instructions:
+Use the dataset you chose for the previous question.
+Using the code in the lab walkthrough, create a column of predicted y-values.
+Using the code in the lab walkthrough, create a column of residuals.
+Q6.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
+Q6.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
+Q6.3 (1 pt.) Paste your figure file into the file entry box.
+
+
+set.seed(145)
+n_pts1 = 10
+x_min1 = 1
+x_max1 = 10
+y_min1 = 3
+y_max1 = 16
+x1 = runif(n = n_pts1, min = x_min1, max = x_max1)
+y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
+dat1 = data.frame(x = x1, y = y1)
+plot(y ~ x, data = dat1, pch = 8, main = "Random A")
+curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
+
+# finding residuals...
+y_predicted1 <- line_point_slope(dat1$x, guess_x1, guess_y1, guess_slope1) # predicted y values based on my estimated model parameters
+datbind1 <- cbind(dat1, y_predicted1) # add predicted values as column to data.frame
+
+# calculate residuals
+resids1 <- as.vector(datbind1$y-datbind1$y_predicted1)
+datbind1A <- cbind(datbind1, resids1)
+sum(resids1) # there is more error above the proposed model than below it. this should be as close to possible as zero. 
+sum(abs(resids1)) # this value should also be as small as possible (total error)
+

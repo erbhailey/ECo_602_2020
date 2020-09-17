@@ -1,0 +1,104 @@
+---
+title: "Week 3: Deterministic Functions (602)"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+PART 1:
+INDIVIDUAL ASSIGNMENT
+
+Below I load the here package and save bird.sta.csv to my computer's directory.
+```{r data setup}
+install.packages("here")
+library(here)
+getwd()
+
+write.csv(read.csv("https://michaelfrancenelson.github.io/eco_602_634_2020/data/hab.sta.csv"),"./data//hab.sta.csv", row.names = FALSE) # load habitat data into my computer's directory
+```
+
+Below I take a look at the use of the here() function. 
+```{r here}
+# here is designed to work with RProjects.
+# here() returns the absolute path to the base directory, i.e. the directory on which ECo_602_2020 operates. 
+# this base directory stays consistent even if the working directory has been changed.
+
+# an example of its use...
+# if the desired file is located within a subdirectory of data called data_sets, I would type here("data", "data_sets", "my_data.csv")
+
+file.exists(here("data", "hab.sta.csv"))
+# TRUE
+
+dat_habitat <- read.csv(here("data", "hab.sta.csv"))
+```
+
+Data exploration...
+We will be focusing on elevation, slope, and aspect. 
+```{r histograms}
+colnames(dat_habitat)
+
+hist(dat_habitat$elev, main = "Histogram of Site Elevation", xlab = "Elevation (m)")
+hist(dat_habitat$slope, main = "Histogram of Site Slope", xlab = "Slope (degrees)")
+hist(dat_habitat$aspect, main = "Histogram of Site Aspect", xlab = "Slope (degrees)")
+```
+Q1: The elevation of the sampling sites ranges from under 100 meters to over 800 meters. The most commonly observed elevation is approximately 380 meters. Most sampling sites have elevations relatively close to the most commonly observed elevation of 380 meters. The likelihood that a certain elevation will be observed decreases as one moves away from the most commonly observed elevation (i.e. elevations closer to ~80 meters or ~850 meters are less likely than those closer to ~380 meters). Elevations of 200-225 meters are about half as common and elevations of 425-450 meters are less than half as common as elevations of 375-400 meters. There are some sites with very high elevations of about 625-850 meters, but they are not frequently observed. There is also a particularly high frequency of elevations from 300-425 meters. Otherwise, sampling sites are mostly evenly distributed. 
+  
+  
+Q2: Sampling site slope ranges from 0 to about 110 degrees. The most commonly observed slope is approximately 50 degrees. Most sampling sites have elevations relatively close to the most commonly observed slope of 50 degrees. The likelihood that a certain slope will be observed decreases as one moves away from the most commonly observed slope (i.e. sampling sites are less likely to be very flat (~0-10 degrees) or very steep (~90-110) and they are more likely to have a slope that is closer to 50 degrees). Compared to elevation, slope is more evenly distributed.
+
+
+Q3: Compared to elevation and slope, aspect is very evenly distributed. In other words, east-facing, west-facing, north-facing, and south-facing sample sites are approximately the same in number. There seem to be about as many north-facing slopes as south-facing slopes, though sample sites with an aspect of 180-360 degrees (south-facing) appear to be ever-so-slightly more common. 
+
+
+Q4: The topography of Oregon is very diverse. This heterogeneity is reflected by the histograms of elevation, slope, and aspect of the birds data study sites. There is a broad range of elevations, with a central point of about 380 meters (pretty steep). There is also a broad range of slopes and directions in which those slopes point - reflective of a mountainous terrain. If the research were conducted in a less rugged state such as Ohio, there would likely be a higher frequency of low elevation sites. There would also likely be a higher frequency of relatively flat sites. In other words, these histograms would be skewed to the right.
+
+Below is a custom function to fit a linear slope to a regression plot.
+```{r linear regression}
+line_point_slope = function(x, x1, y1, slope)
+{
+  get_y_intercept = 
+    function(x1, y1, slope) 
+      return(-(x1 * slope) + y1)
+  
+  linear = 
+    function(x, yint, slope) 
+      return(yint + x * slope)
+  
+  return(linear(x, get_y_intercept(x1, y1, slope), slope))
+}
+```
+
+
+```{r scatterplots}
+# elevation vs. slope
+reg1 <- lm(ba.tot~elev, data = dat_habitat)
+plot(dat_habitat$elev, dat_habitat$ba.tot, main = "Elevation vs. Basal Area", xlab = "Elevation (m)", ylab = "Basal area (sq.m/sq.ha)", col = "pink")
+abline(reg1)
+cor.test(dat_habitat$elev, dat_habitat$ba.tot)
+
+# aspect vs. elevation
+reg2 <- lm(ba.tot~slope, data = dat_habitat)
+plot(dat_habitat$slope, dat_habitat$ba.tot, main = "Slope vs. Basal Area", xlab = "Slope (degrees)", ylab = "Basal area (sq.m/sq.ha)", col = "pink")
+abline(reg2)
+cor.test(dat_habitat$slope, dat_habitat$ba.tot)
+
+# slope vs. aspect
+reg3 <- lm(ba.tot~aspect, data = dat_habitat)
+plot(dat_habitat$aspect, dat_habitat$ba.tot, main = "Aspect vs. Basal Area", xlab = "Aspect (degrees)", ylab = "Basal area (sq.m/sq.ha)", col = "pink")
+abline(reg3)
+cor.test(dat_habitat$aspect, dat_habitat$ba.tot)
+```
+
+Consider the three terrain/basal area scatter plots.
+Q6.1: There is no significant association between elevation and basal area. 
+
+Q6.2: There is no significant association between slope and basal area. 
+
+Q6.3: There is a very slight, yet statistically significant, positive association between aspect and basal area.
+
+Q6.4: The elevation, slope, and aspect of a given sample site do not appear to have anything to do with the total basal area of trees in the site (though basal area may on average be slightly higher in east-facing plots). There may be other properties of the terrain that explain variation in basal area. This merits further data exploration. 
+
