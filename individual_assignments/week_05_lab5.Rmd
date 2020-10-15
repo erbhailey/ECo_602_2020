@@ -1,0 +1,204 @@
+---
+title: 'Lab 5: Modeling Error'
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r ricker_fun and sample plot}
+ricker_fun = function(x, a, b) 
+{
+  return(a * x * exp(-b * x))
+}
+
+
+curve(
+  ricker_fun(x, 1, 1), 
+  from = 0, to = 5, add = FALSE, # from and to indicate x values
+  main = "Ricker function: a = 1, b = 1",
+  ylab = "f(x)", xlab = "x")
+```
+
+```{r exp_fun and sample plot}
+exp_fun <- function(x, a, b){
+  return(a * exp(-b * x))
+}
+
+curve(
+  exp_fun(x, 0.1, 0.5), 
+  from = 0, to = 10, add = FALSE, 
+  main = "Exponential function",
+  ylab = "f(x)", xlab = "x")
+```
+
+We will use curve() to plot deterministic models using the different functions we defined above.
+
+We can also create simulated data that uses these functions as a deterministic model and creates random deviates to generate noise. 
+```{r simulated data on a line}
+# Seed the RNG so we can reproduce our results
+set.seed(1234567)
+
+# Specify the x-range and number of points:
+n_pts = 50
+x_min = 2
+x_max = 10
+
+# Generate the x-values
+x_sim = runif(n_pts, min = x_min, max = x_max)
+
+# runif() generates random deviates on a uniform distribution from min to max. 
+
+# choose an intercept and slope for the deterministic model and generate the predicted y values
+param_intercept = 2.3
+param_slope = 0.67
+y_pred = param_intercept + x_sim * param_slope
+plot(x_sim, y_pred)
+
+```
+
+Create observed y values by adding normally distributed noise to predicted values. 
+```{r normal errors 1}
+error_mean = 0
+error_sd = 0.25
+
+y_observed = 
+  y_pred + 
+  rnorm(
+    n = n_pts, 
+    mean = error_mean, 
+    sd = error_sd)
+
+plot(x_sim, y_observed)
+```
+
+Create observed y variables with a greater error about the model. 
+```{r normal errors 2}
+error_mean = 0
+error_sd = 0.1
+
+y_observed_2 = 
+  y_pred + 
+  rnorm(
+    n = n_pts, 
+    mean = error_mean, 
+    sd = error_sd * x_sim)
+
+plot(x_sim, y_observed_2)
+```
+
+Create a model with exponentially-distributed errors using rexp()
+```{r exponentially-distributed errors}
+rexp(50, rate = 1.2)
+
+y_observed_3 = y_pred + rexp(n = n_pts, rate = 1.2)
+
+plot(x_sim, y_observed_3)
+```
+
+```{r choosing a plot}
+# View models side by side
+par(mfrow = c(3, 1))
+plot(x_sim, y_observed)
+plot(x_sim, y_observed_2)
+plot(x_sim, y_observed_3)
+
+
+# Examine a histogram of the residuals
+par(mfrow = c(3, 1))
+hist(y_observed - y_pred, main = "sim data 1", xlab = "observed y=values")
+hist(y_observed_2 - y_pred, main = "sim data 2", xlab = "observed y=values")
+hist(y_observed_3 - y_pred, main = "sim data 3", xlab = "observed y=values")
+```
+
+
+MARBLED SALAMANDER DISPERSAL DATA
+```{r data import}
+dat_dispersal <- read.csv("https://michaelfrancenelson.github.io/eco_602_634_2020/data/salamander_dispersal.csv", header = TRUE, sep = ",")
+dev.off()
+```
+
+```{r examine data}
+plot(dispersal$dist.class, dispersal$disp.rate.ftb, main = "Dispersal rates of first time \nbreeder salamanders by distance", xlab = "Distance class (m)", ylab = "Dispersal rate")
+# function(x, a, b)
+
+curve(
+  ricker_fun(x, .02, .008), # a = slope of initial curve, 1/b = height
+  from = 0, to = 1500, add = TRUE,
+  main = "Ricker function",
+  ylab = "f(x)", xlab = "x", col = "green")
+
+curve(
+  exp_fun(x, 1, .003), 
+  from = 0, to = 1500, add = TRUE, 
+  main = "Exponential function",
+  ylab = "f(x)", xlab = "x", col = "blue")
+
+lm(dispersal$disp.rate.ftb ~ dispersal$dist.class)
+
+abline(0.4482125, -0.0003128, col = "red")
+
+```
+
+```{r exponential comparison}
+curve(
+  exp_fun(x, 1.9, 0.1), 
+  from = 0, to = 40, add = FALSE, 
+  main = "Exponential function variants",
+  ylab = "f(x)", xlab = "x", col = "black", lty = 1)
+
+curve(
+  exp_fun(x, 1.9, 0.3), add = TRUE, col = "black", lty = 3)
+
+curve(
+  exp_fun(x, 1.2, 0.2), add = TRUE, col = "red", lty = 1)
+
+curve(
+  exp_fun(x, 1.2, 0.4), add = TRUE, col = "red", lty = 3)
+```
+
+```{r ricker comparison}
+curve(
+  ricker_fun(x, 25, 0.1), 
+  from = 0, to = 40, add = FALSE,
+  main = "Ricker function variants",
+  ylab = "f(x)", xlab = "x", lty = "solid")
+curve(ricker_fun(x, 20, 0.2), add = TRUE, lty = "dotted")
+curve(ricker_fun(x, 10, 0.2), add = TRUE, lty = "dotted")
+curve(ricker_fun(x, 75, 0.3), add = TRUE, lty = "solid")
+curve(ricker_fun(x, 50, 0.3), add = TRUE, lty = "dotted")
+curve(ricker_fun(x, 40, 0.3), add = TRUE, lty = "dotted")
+```
+
+
+
+Question 9: using the parameters chosen for the linear fit, calculate the residuals and store them in a vector "resids_linear"
+```{r linear residuals}
+lin_pred = 0.4482125 + dispersal$dist.class * -0.0003128
+plot(dispersal$dist.class, lin_pred)
+
+resids_linear <- dispersal$disp.rate.ftb - lin_pred
+ 
+hist(resids_linear, main = "Residuals of a linear model of \ndistance vs. salamander dispersal rates", xlab = "Observed y values") 
+```
+
+```{r exponential residuals}
+exp_pred = exp_fun(dispersal$dist.class, 1, .003)
+plot(dispersal$dist.class, exp_pred)
+resids_exp <- dispersal$disp.rate.ftb - exp_pred
+ 
+hist(resids_exp, main = "Residuals of an exponential model of \ndistance vs. salamander dispersal rates", xlab = "Observed y values") 
+```
+
+```{r ricker residuals}
+rick_pred = ricker_fun(dispersal$dist.class, .02, .008)
+plot(dispersal$dist.class, rick_pred)
+resids_ricker <- dispersal$disp.rate.ftb - rick_pred
+
+hist(resids_ricker, main = "Residuals of a ricker model of \ndistance vs. salamander dispersal rates", xlab = "Observed y values") 
+```
+

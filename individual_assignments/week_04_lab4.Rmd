@@ -122,16 +122,40 @@ norm_300 <- rnorm(300, mean = fakemean, sd = fakesd)
 
 
 
-QUESTION 2: 
+QUESTION 2:
+```{r hists}
+png(file = "./figures/lab_04_hist_01.png", width = 700, height = 1400, res = 180)
+par(mfrow = c(3, 1))
+hist(norm_17, main = "17 randomly generated deviate values\n about a normal distribution")
+hist(norm_30, main = "30 randomly generated deviate values\n about a normal distribution")
+hist(norm_300, main = "300 randomly generated deviate values\n about a normal distribution")
+dev.off()
+```
+Save your figure to a file called lab_04_hist_01.png.
+Your figure should be 1400 pixels high, and 700 pixels wide.
+It should have a resolution of 180 dpi.
+Q2.1 (2 pts) Paste the R code you used to create your figure into the text entry box.
+Q2.2 (1 pt) Upload your figure image file into the file upload box.
+
+png(file = "./figures/lab_04_hist_01.png", width = 700, height = 1400, res = 180)
+par(mfrow = c(3, 1))
+hist(norm_17, main = "17 randomly generated deviate values\n about a normal distribution")
+hist(norm_30, main = "30 randomly generated deviate values\n about a normal distribution")
+hist(norm_300, main = "300 randomly generated deviate values\n about a normal distribution")
+dev.off()
+
+
+
+QUESTION 3: 
 ```{r q1 histograms}
 hist(norm_17)
 hist(norm_30)
 hist(norm_300)
 ```
-Question 2: Normal Density 2
+Question 3: Normal Density 2
 Consider the histograms you created in the previous question.
-Q2.1 Qualitatively describe the differences in the patterns you observe.
-Q2.2 Explain why they histograms are different.
+Q3.1 Qualitatively describe the differences in the patterns you observe.
+Q3.2 Explain why they histograms are different.
 
 The histogram of norm_17 has a large number of values on its left tail. The histogram is skewed left. The histogram of norm_30 looks slightly more normal, but there are no values between 4 and 6. The histogram of norm_300 looks the most normal, though it is still slightly skewed left. 
 
@@ -139,15 +163,15 @@ These histograms are different because (1) norm_17, norm_30, and norm_300 are al
 
 
 
-QUESTION 3
-```{r question 3}
+QUESTION 4
+```{r question 4}
 x = seq((fakemean-10), (fakemean+10), length.out = 1000)
 y = dnorm(x, mean = fakemean, sd = fakesd)
-
+png(file = "./figures/norm_1.png", width = 1000, height = 800, res = 180)
 plot(x, y, main = "Normal PDF (mean = 10.4, sd = 2.4)", type = "l")
 
 ```
-Question 3: Normal Density 1
+Question 4: Normal Density 1
 Remember the code I used to create a plot of the density function of a standard normal distribution:
 Instructions
 Use the code above as a template to plot a density curve for a normal distribution with:
@@ -155,19 +179,20 @@ mean = 10.4
 standard deviation = 2.4
 Include an informative title that states the mean and standard deviation values you used.
 Save your figure to a file called norm_1.png.
-Q3.1 (1 pt). What are the parameters and their values for the standard Normal distribution?
-Q3.2 (2 pts). Paste the R code you used to create and save your figure into the text-entry window.
-Q3.1 (1 pts). Paste the image file of your figure into the file entry box.
+Q4.1 (1 pt). What are the parameters and their values for the standard Normal distribution?
+Q4.2 (2 pts). Paste the R code you used to create and save your figure into the text-entry window.
+Q4.1 (1 pts). Paste the image file of your figure into the file entry box.
 
 A standard normal distribution has a mean of 0 and a standard devation of 1. This normal distribution was designed to have a mean of 10.4 and a standard deviation of 2.4. 
 
 x = seq((fakemean-10), (fakemean+10), length.out = 1000)
 y = dnorm(x, mean = fakemean, sd = fakesd)
+png(file = "./figures/norm_1.png", width = 1000, height = 800, res = 180)
 plot(x, y, main = "Normal PDF (mean = 10.4, sd = 2.4)", type = "l")
 
 
 
-QUESTION 4:
+QUESTION 5:
 ```{r random scatterplots}
 par(mfrow = c(2,2))
 
@@ -182,6 +207,7 @@ y1 = runif(n = n_pts1, min = y_min1, max = y_max1)
 dat1 = data.frame(x = x1, y = y1)
 plot(y ~ x, data = dat1, pch = 8, main = "Random A")
 
+dev.off()
 set.seed(132)
 n_pts2 = 23
 x_min2 = -2
@@ -218,7 +244,7 @@ plot(y ~ x, data = dat4, pch = 7, main = "Random D")
 dev.off()
 ```
 
-Question 4: Simulated Data 1
+Question 5: Simulated Data 1
 Instructions:
 Review the section of the lab instructions in which I created a data.frame of random data.
 Experiment with creating and plotting random data:
@@ -228,9 +254,9 @@ Try using set.seed() with different seed values.
 Create scatterplots of four of your favorite random data sets.
 They should be in a single frame, arranged in a 2 by 2 grid.
 Save your figure to a file called sim_data_scatterplots.png
-Q4.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
-Q4.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
-Q4.3 (1 pt.) Paste your figure file into the file entry box.
+Q5.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
+Q5.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
+Q5.3 (1 pt.) Paste your figure file into the file entry box.
 
 par(mfrow = c(2,2))
 # then I ran the code for each of the four scatterplots
@@ -249,7 +275,7 @@ plot(y ~ x, data = dat2, pch = 2, main = "Random B")
 
 
 
-QUESTION 5:
+QUESTION 6:
 ```{r model fit 1}
 
 line_point_slope = function(x, x1, y1, slope)
@@ -286,13 +312,13 @@ curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
 
 ```
 
-Question 5: Model Fit 1
+Question 6: Model Fit 1
 Instructions:
 Choose one of your datasets from the previous question.
 Using the code in the lab walkthrough, visually fit a linear deterministic function through the data. Make sure you save your parameters to variables so you can use them in the next question.
 Create a plot of your simulated data and the line of your fitted model.
-Q5.1 (3 pts.) Paste the R code you used to fit your model.
-Q5.2 (1 pt.) Paste your figure file into the file entry box.
+Q6.1 (3 pts.) Paste the R code you used to fit your model.
+Q6.2 (1 pt.) Paste your figure file into the file entry box.
 
 line_point_slope = function(x, x1, y1, slope)
 {
@@ -329,7 +355,7 @@ curve(line_point_slope(x, guess_x1, guess_y1, guess_slope1), add = T)
 
 
 
-QUESTION 6:
+QUESTION 7:
 ```{r residuals 1}
 set.seed(145)
 n_pts1 = 10
@@ -353,14 +379,14 @@ datbind1A <- cbind(datbind1, resids1)
 sum(resids1) # there is more error above the proposed model than below it. this should be as close to possible as zero. 
 sum(abs(resids1)) # this value should also be as small as possible (total error)
 ```
-Question 6: Residuals 1
+Question 7: Residuals 1
 Instructions:
 Use the dataset you chose for the previous question.
 Using the code in the lab walkthrough, create a column of predicted y-values.
 Using the code in the lab walkthrough, create a column of residuals.
-Q6.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
-Q6.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
-Q6.3 (1 pt.) Paste your figure file into the file entry box.
+Q7.1 (3 pts.) Paste the R code you used to create one of the random datasets in your figure into the text entry box.
+Q7.2 (3 pts.) Paste the R code you used to create your figure into the text entry box.
+Q7.3 (1 pt.) Paste your figure file into the file entry box.
 
 
 set.seed(145)

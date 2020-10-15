@@ -1,0 +1,330 @@
+---
+title: "week_06_lab6: Introduction to Inference"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
+library(palmerpenguins)
+
+sse_mean <- function(x){
+  sd(x, na.rm = TRUE)/(sqrt(length(!is.na(x))))
+}
+
+sse_mean(penguins$bill_depth_mm)
+```
+
+
+p-value interpretation: "how often would I expect to see a result as extreme, or more extreme, if the null hypothesis were true?"
+
+We can use ANOVA (analysis of variance) to perform a parametric, frequentist analysis of the difference between two groups of values. 
+```{r penguins boxplots 1}
+boxplot(flipper_length_mm ~ species, data = penguins)
+
+# droplevels() can be used to remove unused factors from a data.frame.
+dat_pen = droplevels(subset(penguins, species != "Gentoo"))
+{
+  par(mfrow = c(1, 2))
+  boxplot(flipper_length_mm ~ species, data = penguins)
+  boxplot(flipper_length_mm ~ species, data = dat_pen)
+}
+```
+
+
+Alternatively, we can do a resampling simulation to estimate how likely the observed differences in flipper length would be if there truly was no difference. Frequentists love it. 
+```{r repeated resampling}
+# for reproduceability
+set.seed(123)
+
+flipper_shuffled = sample(penguins$flipper_length_mm, replace = TRUE)
+par(mfrow = c(1, 2))
+boxplot(flipper_length_mm ~ species, data = penguins)
+boxplot(flipper_shuffled ~ penguins$species, xlab = "species")
+# simulated data has much lower variability than the original data grouped by species. 
+```
+
+
+The two-sample t-test is a good way to compare the mean values of two groups.
+Two-sample resampling and t-test on simulated data.
+```{r two-sample resampling}
+set.seed(1)
+flipper_shuffled = sample(dat_pen$flipper_length_mm, replace = TRUE)
+boxplot(flipper_shuffled ~ dat_pen$species)
+
+t_test_1 = t.test(flipper_shuffled ~ dat_pen$species)
+t_test_1
+# non-significant t-test: resampled data do not differ significantly, unlike observed data. 
+```
+
+
+Difference of means: 
+```{r mean comparison}
+t_test = t.test(dat_pen$flipper_length_mm ~ dat_pen$species)
+t_test
+t_test$estimate
+# tiny p value = groups are significantly different in observed data
+
+# difference in means found below
+diff_observed = round(diff(t_test$estimate), digits = 3)
+print(diff_observed, digits = 3)
+# = 5.87
+
+```
+
+The difference in means can also be found by using the aggregate() function.
+```{r aggregate means}
+# aggregate() splits the data into subsets, computes summary statistics for each, and returns the result in a convenient form.
+agg_means = aggregate(
+  flipper_length_mm ~ species, 
+  data = dat_pen, 
+  FUN = mean, 
+  na.rm = TRUE)
+diff_observed = diff(agg_means[, 2])
+
+agg_means
+diff_observed
+```
+
+
+Sample sizes
+```{r sample sizes}
+table(dat_pen$species) # provides number of values in each category
+# adelie = 152; chinstrap = 68
+```
+
+Resampling with replacement is the same thing as randomly sampling 68 flipper lengths in one group and 152 in another
+```{r resampling with replacement}
+n_1 = 68
+n_2 = 152
+
+dat_1 = sample(dat_pen$flipper_length_mm, n_1, replace = TRUE)
+dat_2 = sample(dat_pen$flipper_length_mm, n_2, replace = TRUE)
+
+diff_simulated = 
+  mean(dat_1, na.rm = TRUE) - mean(dat_2, na.rm = TRUE)
+
+print(c(observed = diff_observed, simulated = diff_simulated))
+# the difference between groups is very different between observed and simulated data. observed diff = 5.87, simulated = 0.69.
+```
+
+This simulation can be consolidated into a single function.
+```{r two-group resample function}
+two_group_resample = function(x, n_1, n_2){
+  dat_1 = sample(x, n_1, replace = TRUE)
+  dat_2 = sample(x, n_2, replace = TRUE)
+  diff_simulated = mean(dat_1, na.rm = TRUE) - mean(dat_2, na.rm = TRUE)
+  print(diff_simulated)
+}
+```
+
+```{r testing custom resample function}
+set.seed(54321)
+two_group_resample(dat_pen$flipper_length_mm, 68, 152)
+```
+
+
+If I ran this resampling function a bunch of times, how often would I see a mean difference greater than diff_observed?
+```{r repeated resampling}
+n = 2000
+mean_differences = c()
+for (i in 1:n)
+{
+  mean_differences = c(
+    mean_differences,
+    two_group_resample(dat_pen$flipper_length_mm, 68, 152)
+  )
+}
+hist(mean_differences)
+
+# no simulation differences were found to be greater than the observed difference in means. This is consistent with the t-test.
+```
+
+
+Retrieving named elements
+```{r retrieving named elements}
+t_test = t.test(flipper_shuffled ~ dat_pen$species)
+str(t_test)
+t_test$estimate
+
+# this way, we can retrieve the desired elements from a particular statistical test. in this case, we isolated the mean values of Adelie and Chinstrap penguins. 
+```
+
+
+
+
+LAB QUESTIONS
+
+
+Question 01: Standard error of the mean function
+Q1.1 Paste the code you used to define your sse_mean() function into the text input.
+
+sse_mean <- function(x){
+  sd(x, na.rm = TRUE)/(sqrt(length(!is.na(x))))
+}
+
+
+
+Question 02: Resampling
+Q2.1 Paste the code you used to define your two_group_resample() function into the text input.
+
+two_group_resample = function(x, n_1, n_2){
+  dat_1 = sample(x, n_1, replace = TRUE)
+  dat_2 = sample(x, n_2, replace = TRUE)
+  diff_simulated = mean(dat_1, na.rm = TRUE) - mean(dat_2, na.rm = TRUE)
+  print(diff_simulated)
+}
+
+
+
+Question 03: Resampling
+```{r Q4}
+n = 2000
+mean_differences = c()
+for (i in 1:n)
+{
+  mean_differences = c(
+    mean_differences,
+    two_group_resample(dat_pen$flipper_length_mm, 68, 152)
+  )
+}
+hist(mean_differences, main = "Histogram of Differences in Repeatedly\n Resampled Flipper Length Means", xlab = "Difference in mean (mm)")
+```
+Q3.1 Upload a histogram of the resampled differences of means.
+
+lab_06_mean_difs_hist FIGURE
+
+
+
+Question 04: Resampling
+```{r Q4}
+n = 2000
+mean_differences = c()
+for (i in 1:n)
+{
+  mean_differences = c(
+    mean_differences,
+    two_group_resample(dat_pen$flipper_length_mm, 68, 152)
+  )
+}
+
+sum(abs(mean_differences)>5.8)
+```
+Q4.1 How many of your resampled differences of means were greater than 5.8? Assume we are doing a 2-sided test (we don't care which species has longer flippers).
+
+0 resampled differences of means were greater than 5.8. 
+
+Q5.2 Paste the R code you used to check into the text entry box.
+
+n = 2000
+mean_differences = c()
+for (i in 1:n)
+{
+  mean_differences = c(
+    mean_differences,
+    two_group_resample(dat_pen$flipper_length_mm, 68, 152)
+  )
+}
+sum(abs(mean_differences)>5.8)
+
+
+
+Question 05: Resampling
+Q5.1 Given a p value of less than 1 per 10 million, how many simulations do you think you would have to do to see a difference in mean flipper length equal to or greater than 5.8 mm?
+
+It would take an average of 16,531,658 simulations (1 divided by the p-value) to see a difference in mean flipper length equal to or greater than 5.8 mm.
+
+
+
+Question 06: Resampling
+```{r Q6}
+# "bill_length_mm"
+
+# boxplot of measurements, grouped by species
+dat_pen = droplevels(subset(penguins, species != "Gentoo"))
+boxplot(bill_length_mm ~ species, data = dat_pen, main = "Bill Length by Penguin Species", xlab = "Species", ylab = "Bill length (mm)")
+
+# use aggregate() to calculate the group means and differences in means, and write the difference in means into a variable called diff_crit
+agg_means = aggregate(
+  bill_length_mm ~ species, 
+  data = dat_pen, 
+  FUN = mean, 
+  na.rm = TRUE)
+diff_crit = diff(agg_means[, 2])
+
+# conduct a t-test and observe p-value
+t_test = t.test(dat_pen$bill_length_mm ~ dat_pen$species)
+t_test
+# p-value < 2.2e-16
+
+# conduct a resampling test with 1000 repetitions using two_group_resample()
+tinyguin <- subset(dat_pen, !is.na(dat_pen$bill_length_mm))
+table(tinyguin$species) # 151 Adelie, 68 Chinstrap
+
+n = 1000
+mean_differences = c()
+for (i in 1:n)
+{
+  mean_differences = c(
+    mean_differences,
+    two_group_resample(dat_pen$bill_length_mm, 68, 151)
+  )
+}
+
+
+
+```
+Q6.1 Upload an image file of the boxplot of your chosen variable.
+
+lab_06_bill_byspecies_box FIGURE 
+
+Q6.2 What were the group means and difference between the means? Paste your answer and the R code you used into the text entry box.
+
+The mean bill length (mm) is 38.791 for Adelie and 48.834 for Chinstrap penguins. The difference in these means is 10.04243.
+
+agg_means = aggregate(
+  bill_length_mm ~ species, 
+  data = dat_pen, 
+  FUN = mean, 
+  na.rm = TRUE)
+diff_crit = diff(agg_means[, 2])
+
+
+
+
+
+Question 07: Resampling
+Q7.1 Interpret the p-value from the t-test output in plain, non-technical english that a non-statistician would understand.
+
+The p-value determined by a t-test comparing the mean bill length of Adelie to Chinstrap penguins is < 2.2e-16. This means that there is an incredibly small probability that the bill lengths of Adelie and Chinstrap penguins differ solely by chance. In other words, there is a significance difference between the bill lengths of these two species. 
+
+
+
+
+Question 08: Resampling
+```{r Q8}
+agg_means = aggregate(
+  bill_length_mm ~ species, 
+  data = dat_pen, 
+  FUN = mean, 
+  na.rm = TRUE)
+diff_crit = diff(agg_means[, 2])
+
+sum(abs(mean_differences)>abs(diff_crit))
+
+hist(mean_differences, main = "Histogram of Differences in Repeatedly\n Resampled Bill Length Means", xlab = "Difference in mean (mm)")
+
+```
+Q8.1 How many differences in means were greater than diff_crit. Remember to treat this as a 2-tailed test.
+
+sum(abs(mean_differences)>abs(diff_crit)) = 0.
+Zero differences in means were greater than diff_crit. 
+
+Q8.2 Upload a histogram of your simulation results.
+
+lab_06_mean_diffs_hist2 FIGURE
+
+
+
+

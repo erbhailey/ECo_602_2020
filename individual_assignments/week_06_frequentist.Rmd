@@ -1,0 +1,108 @@
+---
+title: "week_06_frequentist_concepts"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+R implements probability, cumulative probability, and quantile functions for many parametric distributions. These are represented by a p, d, or q respectively in say, pbinom()
+
+pbinom: cumulative mass function
+dbinom: probability mass function
+qbinom: quantile function
+
+Examples of their applications: 
+
+Is a value of 1.2 or 2.4 more likely? - The probability density function, e.g. dnorm()
+
+What is the probability that I observe a value between 1.2 and 2.4?: The cumulative density function, e.g. pnorm()
+
+What is the probability that I observe a value of 1.3 or more?: The cumulative density function, e.g. pnorm()
+
+What is the 20th percentile of fish lengths?: The quantile function, e.g. qnorm()
+
+```{r pnorm}
+# pnorm() fives the probability of observing a value of x or less
+pnorm(7.5, mean = 10, sd = 3) # P 7.5 or less
+1-(pnorm(7.5, mean = 10, sd = 3)) # P 7.5 or more
+```
+
+
+```{r Q1}
+dbinom(3, 4, 0.75)
+```
+Q1.1 What is the probability of observing a count of exactly 3 successes in a binomial distribution with parameters n = 4 and p = 0.75?
+P = 0.421875
+
+Q1.2 Paste the R code that you used to find your answer.
+dbinom(3, 4, 0.75)
+
+
+```{r Q2}
+pbinom(3, 4, 0.75)
+```
+Q2.1 What is the probability of observing a count of 3 successes or fewer in a binomial distribution with parameters n = 4 and p = 0.75?
+P = 0.6835937
+
+Q2.1 Paste the R code that you used to find your answer.
+pbinom(3, 4, 0.75)
+
+
+```{r Q3}
+1-pbinom(3, 5, 0.75)
+sum(dbinom(4:5, 5, 0.75))
+```
+Q3.1 What is the probability of observing more than 3 successes in a binomial distribution with parameters n = 5 and p = 0.75?
+P = 0.6328125
+
+Q3.2 Paste the R code that you used to find your answer.
+1-pbinom(3, 5, 0.75)
+
+
+```{r Q4}
+pnorm(1.2, mean = 2, sd = 2) 
+```
+Q4.1 What is the probability of observing a value of less than 1.2 from a normally-distributed population with mean = 2 and standard deviation = 2?
+P = 0.3445783
+
+Q4.2 Paste the R code that you used to find your answer.
+pnorm(1.2, mean = 2, sd = 2) 
+
+
+```{r Q5}
+1 - pnorm(1.2, mean = 2, sd = 2)
+```
+
+Q5.1 What is the probability of observing a value of greater than 1.2 from a normally-distributed population with mean = 2 and standard deviation = 2?
+P = 0.6554217
+
+Q5.2 Paste the R code that you used to find your answer.
+1 - pnorm(1.2, mean = 2, sd = 2) 
+
+
+```{r Q6}
+pnorm(3.2, mean = 2, sd = 2) - pnorm(1.2, mean = 2, sd = 2)
+```
+Q6.1 What is the probability of observing a value between 1.2 and 3.2 from a normally-distributed population with mean = 2 and standard deviation = 2?
+P = 0.3811686
+
+Q6.2 Paste the R code that you used to find your answer.
+pnorm(3.2, mean = 2, sd = 2) - pnorm(1.2, mean = 2, sd = 2)
+
+
+
+Q7 Describe how the shape of the histogram changes as you continue to press the sample button.
+The shape of the histogram approaches that of the original population distribution as more samples of n=1 are drawn. 
+
+
+Q8 Describe how the shape of the histogram changes as you continue to press the sample button.
+The shape of the histogram appears to be somewhere in between the shape of the original distribution and the shape of a normal distribution as more samples of n=2 are drawn. There are fewer means with values close to the tail end of the distribution, unlike when the same activity was performed with samples of n=1. 
+
+
+Q9 Describe how the shape of the histogram changes as you continue to press the sample button.
+The shape of the histogram continues to approach a normal distribution, with a much narrower distribution than that of the distribution derived from the means of samples of n=2. This mirrors what we learned about confidence intervals. The larger the sample size, the smaller the standard deviation about the mean. 
+

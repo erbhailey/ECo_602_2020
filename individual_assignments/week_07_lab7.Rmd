@@ -1,0 +1,290 @@
+---
+title: "week_07_lab7: The Bootstrap"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+moths <- read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
+
+# moths contains standardized abundance estimates of 10 rare moth species across 24 sample plots in the pine barrens of southeast Massachusetts.
+```
+
+
+```{r cars}
+hist(moths$anst) # Anisota stigma distribution... not a normal distribution
+
+# what can we do to get a 95% confidence interval?
+```
+
+
+t-distribution: normal distribution when the population variance is unknown and must be estimated from the sample.
+t-distributions have heavier tails than normal distributions, so they are a bit more conservative. 
+```{r CI interval radius}
+alpha = 0.05
+anst = moths$anst
+n = sum(!is.na(anst))
+t_crit = abs(qt(alpha / 2, df = n - 1))
+
+sse = sd(anst) / sqrt(n)
+
+sample_mean = mean(anst)
+ci_parametric = sse * t_crit
+
+confidence_intervals = 
+  data.frame(
+    technique = c("parametric: t-dist"),
+    mean = sample_mean,
+    ci_radius = sse * t_crit,
+    lower = sample_mean - ci_parametric,
+    upper = sample_mean + ci_parametric
+  )
+```
+This is the standard way to construct a confidence interval and test the hypothesis that the mean differs from 0. 
+
+
+We can perform a bootstrap simulation by calculating the mean abundance on many randomly sampled (with replacement) data sets. 
+```{r bootstrap}
+# 1. create an empty vector to hold the bootstrap sample means
+m = 10000
+result = numeric(m)
+head(result)
+
+# 2. create the resampled data sets and calculate the means
+
+for(i in 1:m)
+{
+  result[i] = mean(sample(anst, replace=TRUE))
+}
+
+# 3. calculate the CI from the quantiles of the resulting bootstrap means
+
+mean(result)
+quantile(result,c(0.025,0.975))
+```
+
+
+Bootstrap interval using boot()
+```{r something}
+install.packages("boot")
+library(boot)
+# boot(data, statistic, n resamples)
+
+boot_mean = function(x, i) # create a function to calculate mean
+{
+  return(mean(x[i]))
+} 
+
+myboot = 
+  boot(
+    data = anst,
+    statistic = boot_mean,
+    R = 10000)
+print(myboot)
+
+```
+
+
+```{r IDK what this means}
+mean(anst)
+myboot$t0
+mean(myboot$t) - myboot$t0
+sd(myboot$t)
+
+quantile(
+  myboot$t,
+  c(0.025, 0.975))
+
+```
+
+
+
+
+```{r something}
+moth_dat = moths[,-1]
+head(moth_dat)
+
+n = nrow(moth_dat) #number of rows or sample observations
+m = 100 #number of bootstrap iterations
+moth_result = matrix(
+  nrow = m,
+  ncol = n)
+
+# The outer loop: runs once for each bootstrap iteration.  index variable is i
+for(i in 1:m)
+{
+  # The inner loop: simulates increasing sampling intensity
+  # Sampling intensity ranges from 1 site to the complete count of sites (24)
+  # index variable is j
+  for(j in 1:n)
+  {
+    # sample the input data row indices, with replacement
+    rows_j = sample(n, size = j, replace=TRUE)
+    
+    # Creates a new data matrix
+    t1 = moth_dat[rows_j, ]
+    
+    # Calculates the column sums
+    t2 = apply(t1, 2, sum)
+    
+    # Counts the number of columns in which any moths were observed
+    moth_result[i, j] = sum(t2 > 0)
+  }
+}
+
+head(moth_result)
+````
+
+```{r first draft}
+
+rarefaction_sampler = function(input_dat, n_iterations)
+{
+  n = nrow(moth_dat) #number of rows or sample observations
+  m = 100 #number of bootstrap iterations
+  
+  moth_result = matrix(
+    nrow = m,
+    ncol = n)
+  
+  # The outer loop: runs once for each bootstrap iteration.  index variable is i
+  for(i in 1:m)
+  {
+    # The inner loop: simulates increasing sampling intensity
+    # Sampling intensity ranges from 1 site to the complete count of sites (24)
+    # index variable is j
+    for(j in 1:n)
+    {
+      
+      # sample the input data row indices, with replacement
+      rows_j = sample(n, size = j, replace=TRUE)
+      
+      # Creates a new data matrix
+      t1 = moth_dat[rows_j, ]
+      
+      # Calculates the column sums
+      t2 = apply(t1, 2, sum)
+      
+      # Counts the number of columns in which any moths were observed
+      moth_result[i, j] = sum(t2 > 0)
+    }
+  }
+  
+  return(moth_result)
+}
+
+rarefact = rarefaction_sampler(moth_dat, 100)
+head(rarefact)
+```
+
+```{r second draft}
+rarefaction_sampler = function(input_dat, n_iterations)
+{
+  n_input_rows = nrow(input_dat)
+  
+  results_out = matrix(
+    nrow = n_iterations,
+    ncol = n_input_rows)
+  
+  # The outer loop: runs once for each bootstrap iteration.  index variable is i
+  for(i in 1:n_iterations)
+  {
+    # The inner loop: simulates increasing sampling intensity
+    # Sampling intensity ranges from 1 site to the complete count of 
+    # sites in the input data (n)
+    # index variable is j
+    for(j in 1:n)
+    {
+      # sample the input data row indices, with replacement
+      rows_j = sample(n, size = j, replace=TRUE)
+      
+      # Creates a new data matrix
+      t1 = input_dat[rows_j, ]
+      
+      # Calculates the column sums
+      t2 = apply(t1, 2, sum)
+      
+      # Counts the number of columns in which any moths were observed
+      results_out[i, j] = sum(t2 > 0)
+    }
+  }
+  return(results_out)
+}
+
+rarefact = rarefaction_sampler(moth_dat, 100)
+head(rarefact)
+
+```
+
+```{r check in a fresh environment}
+# This clears the current R session's environment
+rm(list = ls())
+
+# Re-read my data:
+moths = read.csv(here("data", "moths.csv"))
+moth_dat = moths[,-1]
+
+rarefaction_sampler = function(input_dat, n_iterations)
+{
+  
+  n_input_rows = nrow(input_dat)
+  
+  results_out = matrix(
+    nrow = n_iterations,
+    ncol = n_input_rows)
+  
+  # The outer loop: runs once for each bootstrap iteration.  index variable is i
+  for(i in 1:n_iterations)
+  {
+    # The inner loop: simulates increasing sampling intensity
+    # Sampling intensity ranges from 1 site to the complete count of 
+    # sites in the input data (n)
+    for(j in 1:n)
+    {
+      # sample the input data row indices, with replacement
+      rows_j = sample(n, size = j, replace=TRUE)
+      
+      # Creates a new data matrix
+      t1 = input_dat[rows_j, ]
+      
+      # Calculates the column sums
+      t2 = apply(t1, 2, sum)
+      
+      # Counts the number of columns in which any moths were observed
+      results_out[i, j] = sum(t2 > 0)
+    }
+  }
+  return(results_out)
+}
+
+rarefact = rarefaction_sampler(moth_dat, 100)
+
+```
+
+```{r debugging template}
+# This clears the current R session's environment
+rm(list = ls())
+
+# Re-read my data:
+moths = read.csv(here("data", "moths.csv"))
+
+rarefaction_sampler = function(input_dat, n_iterations)
+{
+  ... paste your corrected code here ...
+}
+
+rarefact = rarefaction_sampler(moths[,-1], 100)
+head(rarefact)
+```
+
+
+```{r rarefaction curve}
+# Re-read my data:
+moths = read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
+rarefact = rarefaction_sampler(moths[,-1], 10000)
+```
+
+
+
