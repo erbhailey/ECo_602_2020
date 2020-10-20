@@ -1,0 +1,399 @@
+---
+title: 'Lab 8: Modeling continous data I'
+author: "Hailey Erb"
+date: "10/17/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+require(palmerpenguins)
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+
+t.test(flipper_length_mm ~ species, data = penguin_dat, alternative = "less")
+
+```
+
+
+Two.boot() is used to bootstrap the difference between various statistics (e.g. means). This is done by independently resampling from sample1 and sample2. 
+```{r two.boot}
+install.packages("simpleboot")
+library(simpleboot)
+head(penguin_dat)
+adelie <- subset(penguin_dat, penguin_dat$species == "Adelie")
+chinstrap <- subset(penguin_dat, penguin_dat$species == "Chinstrap")
+
+hist(two.boot(adelie$flipper_length_mm, chinstrap$flipper_length_mm, mean, 1000), main = "Histogram of 1000 bootstrap differences\n in mean penguin flipper length")
+```
+
+```{r load csvs}
+install.packages("here")
+library(here)
+veg <- read.csv(here("data", "vegdata.csv"))
+bird <- read.csv(here("data", "bird.sub.csv"))
+hab <- read.csv(here("data", "hab.sub.csv"))
+```
+
+
+Tree data
+```{r something}
+boxplot(pine ~ treatment, dat = veg)
+
+dat_tree = droplevels(subset(veg, treatment %in% c("control", "clipped"))) # include only clipped and control
+boxplot(pine ~ treatment, dat = dat_tree)
+table(dat_tree$treatment) # n = 8 each for clipped and control
+```
+
+Nonparametric two-sample test...
+```{r something}
+tree_boot = 
+  two.boot(
+    subset(dat_tree, treatment == "clipped")$pine,
+    subset(dat_tree, treatment == "control")$pine,
+    FUN = mean,
+    R = 10000,
+    na.rm = TRUE
+  )
+
+str(tree_boot)
+# sum(tree_boot$t >= 0)
+# sum(tree_boot$t < 0)
+boot.ci(tree_boot)
+hist(tree_boot$t, main = "Bootstrap sampling distribution")
+quantile(tree_boot$t, 0.025)
+```
+
+
+Resampling: linear regression.
+We can use Monte Carlo randomization to assess the significance of regression parameters. 
+We'll estimate the significance of a slope parameters of a simple linear regression.
+
+```{r something}
+dat_bird = read.csv(here("data", "bird.sub.csv"))
+dat_habitat = read.csv(here("data", "hab.sub.csv"))
+
+dat_all = merge(
+  dat_bird, 
+  dat_habitat,
+  by = c("basin", "sub"))
+
+colnames(dat_all) # we are interested in b.sidi (simpson's diversity index for birds) and s.sidi (diversity index for vegetation cover)
+
+plot(
+  b.sidi ~ s.sidi, data = dat_all,
+  main = "Simpson's diversity indices",
+  xlab = "Vegetation cover diversity",
+  ylab = "Bird diversity") # there appears to be a negative relationship between the two variables... could this have been due to chance - or is the relationship real?
+```
+
+
+```{r linear fit}
+fit_1 = lm(b.sidi ~ s.sidi, data = dat_all) # linear fit
+coef(fit_1)
+slope_observed = coef(fit_1)[2]
+
+plot(
+  b.sidi ~ s.sidi, data = dat_all,
+  main = "Simpson's diversity indices",
+  xlab = "Vegetation cover diversity",
+  ylab = "Bird diversity")
+abline(fit_1)
+# how likely is it to see a slope coefficient this large and negative if there is no real relationship between bird diversity and vegetation diversity?
+# the t statistic and p value computed by lm assume that the errors are normally distributed around the mean, but this may not be the case. 
+
+dat_1 = 
+  subset(
+    dat_all,
+    select = c(b.sidi, s.sidi))
+
+```
+
+
+
+```{r monte carlo resampling}
+# monte carlo involves sampling random values from each column instead of keeping rows intact. 
+
+# create two vectors of randomly generated row indices
+index_1 = sample(nrow(dat_1), replace = TRUE)
+index_2 = sample(nrow(dat_1), replace = TRUE)
+
+# shuffled data
+dat_resampled_i = 
+  data.frame(
+    b.sidi = dat_1$b.sidi[index_1],
+    s.sidi = dat_1$s.sidi[index_2]
+  )
+
+fit_resampled_i = lm(b.sidi ~ s.sidi, data = dat_resampled_i)
+slope_resampled_i = coef(fit_resampled_i)[2]
+
+print(slope_resampled_i)
+
+
+plot(
+  b.sidi ~ s.sidi, data = dat_resampled_i,
+  main = "Simpson's diversity indices",
+  xlab = "Vegetation cover diversity",
+  ylab = "Bird diversity")
+abline(fit_resampled_i)
+
+# we need to do this many times to see the range of outcomes we expect to see by chance alone. Random sampling error could account for the original slope we determined. 
+```
+
+
+
+```{r monte carlo randomization loop}
+m = 10000 
+result = numeric(m) # empty vector
+
+for(i in 1:m)
+{
+# shuffled row indices
+index_1 = sample(nrow(dat_1), replace = TRUE)
+index_2 = sample(nrow(dat_1), replace = TRUE)
+
+# shuffled data
+dat_resampled_i = 
+  data.frame(
+    b.sidi = dat_1$b.sidi[index_1],
+    s.sidi = dat_1$s.sidi[index_2]
+  )
+
+fit_resampled_i = lm(b.sidi ~ s.sidi, data = dat_resampled_i)
+  result[i] = coef(fit_resampled_i)[2]
+} 
+
+print(result) # result is a 1000 element vector with monte carlo randomized slopes
+
+```
+
+
+```{r histogram of slopes}
+hist(result, main = "Null Distribution of Regression Slope", xlab = "Slope Parameter")
+abline(v = slope_observed, lty = 2, col = "red", lwd = 2)
+
+# it looks like the original slope is on the lower end of potential slopes.... is it within the confidence interval?
+quantile(result, c(.05))
+slope_observed # lower than the 5th percentile
+
+sum(as.numeric(result<=slope_observed))/length(result)
+# 0.001 is the probability of obtaining a slope less than or equal to the observed slope... so it probably isn't due to chance alone. Why bird diversity decreases with increasing vegetative diversity is yet another question. 
+```
+
+
+LAB QUESTIONS
+```{r Q1: flipper bootstrap histogram}
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+adelie <- subset(penguin_dat, penguin_dat$species == "Adelie")
+chinstrap <- subset(penguin_dat, penguin_dat$species == "Chinstrap")
+
+meanmod <- function(x){
+  mean(x, na.rm = TRUE)
+}
+
+pen_boot <- two.boot(adelie$flipper_length_mm, chinstrap$flipper_length_mm, meanmod, 1000)
+
+hist(pen_boot, main = "Histogram of 1000 bootstrap differences\n in mean penguin flipper length")
+
+
+```
+Q1
+penboot_hist.png
+
+
+
+```{r Q2: flipper bootstrap CI}
+str(pen_boot)
+quantile(pen_boot$t, c(0.025, 0.975))
+```
+Q2
+quantile(pen_boot$t, c(0.025, 0.975))
+
+
+```{r Q3: flipper boot empirical distribution}
+# ecdf = empirical cumulative distribution function
+pen_edcf <- ecdf(pen_boot$t)
+```
+Q3
+pen_edcf <- ecdf(pen_boot$t)
+
+
+
+```{r Q4: flipper length hypotheses}
+# no code needed
+```
+Q4:
+The null hypothesis is that the mean flipper lengths of adelie and chinstrap penguins does not differ except for by chance alone. The null hypothesis assumes that the difference in flipper length will be approximately 0. If a difference of 0 is contained in the confidence interval determined using the observed data, the null hypothesis cannot be rejected. 
+
+
+```{r Q5: flipper bootstrap empirical distribution}
+# pen_ecdf calculates the area under the density curve to the left of x
+meanmod <- function(x){
+  mean(x, na.rm = TRUE)
+}
+obsdiff <- meanmod(adelie$flipper_length_mm)-meanmod(chinstrap$flipper_length_mm) # mean diff = -5.869887
+
+1-pen_edcf(0)
+```
+Q5.1 The probability of observing a mean difference of -4.5 or greater is 8.5% (1-pen_edcf(-4.5))
+
+Q5.2 The empirical probability of observing a mean difference predicted by the null hypothesis (i.e., 0) is approximately 0%. It is fair to assume that the observed differences in flipper length are not due to chance alone, and the null hypothesis can be rejected. 
+
+
+
+```{r Q6: pine seedling Wilcoxon test}
+dat_tree = droplevels(subset(veg, treatment %in% c("control", "clipped")))
+wilcox.test(pine ~ treatment, dat = dat_tree)
+```
+Q6.1 
+dat_tree = droplevels(subset(veg, treatment %in% c("control", "clipped")))
+wilcox.test(pine ~ treatment, dat = dat_tree)
+
+Q6.2
+The p-value is 0.1005
+
+
+
+```{r Q7: pine seedline bootstrap CI}
+tree_boot = 
+  two.boot(
+    subset(dat_tree, treatment == "clipped")$pine,
+    subset(dat_tree, treatment == "control")$pine,
+    FUN = mean,
+    R = 10000,
+    na.rm = TRUE
+  )
+
+quantile(tree_boot$t, c(0.025, 0.975))
+
+str(tree_boot)
+# sum(tree_boot$t >= 0)
+# sum(tree_boot$t < 0)
+boot.ci(tree_boot)
+hist(tree_boot$t, main = "Bootstrap sampling distribution")
+
+mean(subset(dat_tree, treatment == "clipped")$pine, na.rm = TRUE)-mean(subset(dat_tree, treatment == "control")$pine, na.rm = TRUE)
+
+```
+Q7.1
+The lower end of the CI is 4.125 and its upper bound is 29.625.
+
+Q7.2
+The observed difference in mean tree counts is 16. This value is contained within the 95% bootstrap confidence interval.
+
+
+
+```{r Q8: Simpson's diversity resampling loop}
+dat_1 = 
+  subset(
+    dat_all,
+    select = c(b.sidi, s.sidi))
+
+m = 10000 
+result = numeric(m) # empty vector
+
+for(i in 1:m)
+{
+# shuffled row indices
+index_1 = sample(nrow(dat_1), replace = TRUE)
+index_2 = sample(nrow(dat_1), replace = TRUE)
+
+# shuffled data
+dat_resampled_i = 
+  data.frame(
+    b.sidi = dat_1$b.sidi[index_1],
+    s.sidi = dat_1$s.sidi[index_2]
+  )
+
+fit_resampled_i = lm(b.sidi ~ s.sidi, data = dat_resampled_i)
+  result[i] = coef(fit_resampled_i)[2]
+} 
+
+print(result) # result is a 1000 element vector with monte carlo randomized slopes
+
+```
+Q8: paste code
+dat_1 = 
+  subset(
+    dat_all,
+    select = c(b.sidi, s.sidi))
+
+m = 10000 
+result = numeric(m) # empty vector
+
+for(i in 1:m)
+{
+# shuffled row indices
+index_1 = sample(nrow(dat_1), replace = TRUE)
+index_2 = sample(nrow(dat_1), replace = TRUE)
+
+# shuffled data
+dat_resampled_i = 
+  data.frame(
+    b.sidi = dat_1$b.sidi[index_1],
+    s.sidi = dat_1$s.sidi[index_2]
+  )
+
+fit_resampled_i = lm(b.sidi ~ s.sidi, data = dat_resampled_i)
+  result[i] = coef(fit_resampled_i)[2]
+} 
+
+print(result) # result is a 1000 element vector with monte carlo randomized slopes
+
+
+
+
+```{r Q9: Simpson's diversity null distribution}
+quantile(result, c(0.025, 0.975))
+```
+Q9
+Confidence intervals:
+       2.5%       97.5% 
+-0.01574202  0.01561291 
+
+Observed slope:
+-0.02437 (outside of CI)
+
+
+
+
+```{Q10: Simpson's diversity critical value}
+quantile(result, 0.05)
+slope_observed
+```
+Q10.1
+The five percent quantile of monte carlo randomized slopes is -0.01332837. The observed slope is -0.02437131. The observed slope falls below (outside of) the critical value.
+
+Q10.2
+The negative relationship between vegetation cover diversity and bird diversity is not likely due to chance alone. We can reject the null hypothesis. This result offers an opportunity to explore the drivers of the apparent "real" negative relationship between bird diversity and vegetation diversity in the sampled plots. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

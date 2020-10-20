@@ -46,6 +46,7 @@ sum(log(dpois(x = wiwa_counts, lambda = 4.000)))
 
 dat_all$WIWA
 dpois(x = dat_all$WIWA, lambda = 1)
+# poisson model
 sum(log(dpois(x = dat_all$WIWA, lambda = 1.670))) # this is max
 mean(dat_all$WIWA)
 
@@ -60,11 +61,15 @@ mean(wiwa)
 
 sum(logical)/length(logical)
 
-sum(log())
-sum(log(dbinom(x = wiwa, size = length(wiwa), prob = 0.8843212)))
+sum(log(dpois(x = dat_all$WIWA, lambda = 4.2)))
 
 
+# binomial  model
+sum(log(dbinom(wiwa, size = max(wiwa), prob = (mean(wiwa)/max(wiwa))))) = -1508.069
+
+# poisson model
+sum(log(dpois(x = dat_all$WIWA, lambda = 1.670))) = -1544.774
+mean(wiwa)
 
 
-
-
+# The binomial model better fit the data. .

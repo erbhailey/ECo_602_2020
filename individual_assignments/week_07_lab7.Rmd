@@ -14,7 +14,7 @@ moths <- read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020
 ```
 
 
-```{r cars}
+```{r hist}
 hist(moths$anst) # Anisota stigma distribution... not a normal distribution
 
 # what can we do to get a 95% confidence interval?
@@ -23,11 +23,11 @@ hist(moths$anst) # Anisota stigma distribution... not a normal distribution
 
 t-distribution: normal distribution when the population variance is unknown and must be estimated from the sample.
 t-distributions have heavier tails than normal distributions, so they are a bit more conservative. 
-```{r CI interval radius}
+```{r CI interval radius using T}
 alpha = 0.05
-anst = moths$anst
+anst = moths$anst # spiny oakworm, Anisota stigma
 n = sum(!is.na(anst))
-t_crit = abs(qt(alpha / 2, df = n - 1))
+t_crit = abs(qt(alpha / 2, df = n - 1)) # multiply critical t-value by the sample standard error of the mean to get the radius of the CI. 
 
 sse = sd(anst) / sqrt(n)
 
@@ -42,11 +42,12 @@ confidence_intervals =
     lower = sample_mean - ci_parametric,
     upper = sample_mean + ci_parametric
   )
+confidence_intervals
 ```
 This is the standard way to construct a confidence interval and test the hypothesis that the mean differs from 0. 
 
 
-We can perform a bootstrap simulation by calculating the mean abundance on many randomly sampled (with replacement) data sets. 
+We can perform a bootstrap simulation by calculating the mean abundance on many randomly sampled (with replacement) data sets. This is an alternate way to obtain the CI. 
 ```{r bootstrap}
 # 1. create an empty vector to hold the bootstrap sample means
 m = 10000
@@ -85,10 +86,14 @@ myboot =
     R = 10000)
 print(myboot)
 
+# original is the original mean of the whole sample (mean(anst))
+# bias is the difference between the original mean and the mean of bootstrapped samples
+# std.error is the standard deviation of the simulated values
+str(myboot)
 ```
 
 
-```{r IDK what this means}
+```{r extract bootstrap CI intervals from }
 mean(anst)
 myboot$t0
 mean(myboot$t) - myboot$t0
@@ -96,22 +101,23 @@ sd(myboot$t)
 
 quantile(
   myboot$t,
-  c(0.025, 0.975))
+  c(0.025, 0.975)) # this is how to extract the bootstrap confidence intervals
 
 ```
+So far we have used three different methods to extract CIs: t-distribution sampling, simple boot, and the boot package boot() function. 
 
 
 
-
-```{r something}
-moth_dat = moths[,-1]
+```{r setting up the bootstrap}
+moth_dat = moths[,-1] # remove siteID column
 head(moth_dat)
 
 n = nrow(moth_dat) #number of rows or sample observations
-m = 100 #number of bootstrap iterations
+m = 100 # number of bootstrap iterations
 moth_result = matrix(
   nrow = m,
-  ncol = n)
+  ncol = n) # this is an empty matrix to contain the bootstrap
+
 
 # The outer loop: runs once for each bootstrap iteration.  index variable is i
 for(i in 1:m)
@@ -138,7 +144,7 @@ for(i in 1:m)
 head(moth_result)
 ````
 
-```{r first draft}
+```{r first draft of portable rarefaction function}
 
 rarefaction_sampler = function(input_dat, n_iterations)
 {
@@ -179,7 +185,7 @@ rarefact = rarefaction_sampler(moth_dat, 100)
 head(rarefact)
 ```
 
-```{r second draft}
+```{r second draft portable function}
 rarefaction_sampler = function(input_dat, n_iterations)
 {
   n_input_rows = nrow(input_dat)
@@ -195,10 +201,10 @@ rarefaction_sampler = function(input_dat, n_iterations)
     # Sampling intensity ranges from 1 site to the complete count of 
     # sites in the input data (n)
     # index variable is j
-    for(j in 1:n)
+    for(j in 1:n_input_rows)
     {
       # sample the input data row indices, with replacement
-      rows_j = sample(n, size = j, replace=TRUE)
+      rows_j = sample(n_input_rows, size = j, replace=TRUE)
       
       # Creates a new data matrix
       t1 = input_dat[rows_j, ]
@@ -223,7 +229,7 @@ head(rarefact)
 rm(list = ls())
 
 # Re-read my data:
-moths = read.csv(here("data", "moths.csv"))
+moths = read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
 moth_dat = moths[,-1]
 
 rarefaction_sampler = function(input_dat, n_iterations)
@@ -241,10 +247,10 @@ rarefaction_sampler = function(input_dat, n_iterations)
     # The inner loop: simulates increasing sampling intensity
     # Sampling intensity ranges from 1 site to the complete count of 
     # sites in the input data (n)
-    for(j in 1:n)
+    for(j in 1:n_input_rows)
     {
       # sample the input data row indices, with replacement
-      rows_j = sample(n, size = j, replace=TRUE)
+      rows_j = sample(n_input_rows, size = j, replace=TRUE)
       
       # Creates a new data matrix
       t1 = input_dat[rows_j, ]
@@ -260,19 +266,49 @@ rarefaction_sampler = function(input_dat, n_iterations)
 }
 
 rarefact = rarefaction_sampler(moth_dat, 100)
-
+rarefact
 ```
 
-```{r debugging template}
+
+
+```{r debugged rarefaction code: rarefaction_sampler()}
 # This clears the current R session's environment
 rm(list = ls())
 
 # Re-read my data:
-moths = read.csv(here("data", "moths.csv"))
+moths = read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
 
 rarefaction_sampler = function(input_dat, n_iterations)
 {
-  ... paste your corrected code here ...
+  
+  n_input_rows = nrow(input_dat)
+  
+  results_out = matrix(
+    nrow = n_iterations,
+    ncol = n_input_rows)
+  
+  # The outer loop: runs once for each bootstrap iteration.  index variable is i
+  for(i in 1:n_iterations)
+  {
+    # The inner loop: simulates increasing sampling intensity
+    # Sampling intensity ranges from 1 site to the complete count of 
+    # sites in the input data (n)
+    for(j in 1:n_input_rows)
+    {
+      # sample the input data row indices, with replacement
+      rows_j = sample(n_input_rows, size = j, replace=TRUE)
+      
+      # Creates a new data matrix
+      t1 = input_dat[rows_j, ]
+      
+      # Calculates the column sums
+      t2 = apply(t1, 2, sum)
+      
+      # Counts the number of columns in which any moths were observed
+      results_out[i, j] = sum(t2 > 0)
+    }
+  }
+  return(results_out)
 }
 
 rarefact = rarefaction_sampler(moths[,-1], 100)
@@ -280,11 +316,180 @@ head(rarefact)
 ```
 
 
-```{r rarefaction curve}
+```{r rarefaction matrix}
 # Re-read my data:
 moths = read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
 rarefact = rarefaction_sampler(moths[,-1], 10000)
+head(rarefact)
+# rarefact will contain 10,000 rows and 24 columns, where each row is a separate bootstrap iteration and each column represents the size of the bootstrap sample (n = 1:24)
 ```
+
+
+We can now calculate the mean 2.5 and 97.5% quantiles of the bootstrapped species richness for each sampling intensity using apply()
+```{r rarefaction curve}
+rare_mean = apply(rarefact, 2, mean)
+rare_quant = apply(rarefact, 2, quantile, probs=c(0.025, 0.975))
+rare = t(rbind(rare_mean, rare_quant))
+
+matplot(
+  rare,
+  type='l',
+  xlab='Number of sampling plots',
+  ylab='Species richness',
+  main='Rarefaction Curve')
+
+legend(
+  'bottomright',
+  legend=c('mean','2.5%','97.5%'),
+  lty=c(1,2,3),col=c(1,2,3), inset=c(.1,.1))
+```
+Five sample plots are not sufficient for the production of confidence intervals. Our CI is tighter at 10 sample plots, and pretty damn tight at 15. 
+
+
+
+
+
+
+
+
+LAB QUESTIONS
+```{r Q1: t-distribution CI}
+library(palmerpenguins)
+data(package = "palmerpenguins")
+penguins <- as.data.frame(penguins)
+
+gentoo <- subset(penguins, penguins$species == "Gentoo")
+
+alpha = 0.05
+billlength = gentoo$bill_length_mm[!is.na(gentoo$bill_length_mm)==TRUE]
+n = length(billlength)
+t_crit = abs(qt(alpha / 2, df = n - 1)) 
+
+sse = sd(billlength) / sqrt(n)
+
+sample_mean = mean(billlength)
+ci_parametric = sse * t_crit
+
+confidence_intervals = 
+  data.frame(
+    technique = c("parametric: t-dist"),
+    mean = sample_mean,
+    std.dev = sd(billlength, na.rm = TRUE),
+    std.err = sse,
+    ci_radius = sse * t_crit,
+    lower = sample_mean - ci_parametric,
+    upper = sample_mean + ci_parametric
+  )
+print(confidence_intervals)
+```
+Q1.1 Calculate confidence intervals using student's t-distribution. Paste the above code.
+# mean = 47.50488
+# sd = 3.081857 
+# SE = 0.2778817
+# ci_radius = 0.5500946
+# lower = 46.95478 
+# upper = 48.05497
+
+
+
+```{r Q2: boot() CI}
+install.packages("boot")
+library(boot)
+# boot(data, statistic, n resamples)
+
+boot_mean = function(x, i) # create a function to calculate mean
+{
+  return(mean(x[i]))
+} 
+
+myboot = 
+  boot(
+    data = billlength,
+    statistic = boot_mean,
+    R = 10000)
+print(myboot)
+
+
+mean(billlength)
+myboot$t0
+mean(myboot$t) - myboot$t0
+sd(myboot$t)
+
+CIbounds <- quantile(
+  myboot$t,
+  c(0.025, 0.975))
+CIbounds
+```
+Q2.1 Calculate confidence intervals using the boot() function from the package boot(). Paste your code. 
+# lower = 46.96992
+# upper = 48.05205 
+
+
+```{r Q3: rarefaction curve}
+rm(list = ls())
+
+library(palmerpenguins)
+data(package = "palmerpenguins")
+penguins <- as.data.frame(penguins)
+gentoo <- subset(penguins, penguins$species == "Gentoo")
+billlength = as.data.frame(gentoo$bill_length_mm[!is.na(gentoo$bill_length_mm)==TRUE])
+
+
+rarefaction_sampler = function(input_dat, n_iterations)
+{
+  n_input_rows = nrow(input_dat)
+  
+  results_out = matrix(
+    nrow = n_iterations,
+    ncol = n_input_rows)
+  
+  # The outer loop: runs once for each bootstrap iteration.  index variable is i
+  for(i in 1:n_iterations)
+  {
+    # The inner loop: simulates increasing sampling intensity
+    # Sampling intensity ranges from 1 site to the complete count of 
+    # sites in the input data (n)
+    for(j in 1:n_input_rows)
+    {
+      # sample the input data row indices, with replacement
+      rows_j = sample(n_input_rows, size = j, replace=TRUE)
+      
+      # Creates a new data matrix
+      t1 = input_dat[rows_j, ]
+      
+      # Calculates the column sums
+      t2 = apply(t1, 2, sum)
+      
+      # Counts the number of columns in which any moths were observed
+      results_out[i, j] = sum(t2 > 0)
+    }
+  }
+  return(results_out)
+}
+
+rarefact = rarefaction_sampler(billlength, 1000)
+head(rarefact)
+```
+Q3.1 Paste your completed rarefaction_sampler() function.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
