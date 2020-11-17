@@ -428,12 +428,8 @@ Q2.1 Calculate confidence intervals using the boot() function from the package b
 ```{r Q3: rarefaction curve}
 rm(list = ls())
 
-library(palmerpenguins)
-data(package = "palmerpenguins")
-penguins <- as.data.frame(penguins)
-gentoo <- subset(penguins, penguins$species == "Gentoo")
-billlength = as.data.frame(gentoo$bill_length_mm[!is.na(gentoo$bill_length_mm)==TRUE])
-
+moths = read.csv(file = "https://michaelfrancenelson.github.io/eco_602_634_2020/data/moths.csv")
+moths = moths[,-1]
 
 rarefaction_sampler = function(input_dat, n_iterations)
 {
@@ -453,13 +449,10 @@ rarefaction_sampler = function(input_dat, n_iterations)
     {
       # sample the input data row indices, with replacement
       rows_j = sample(n_input_rows, size = j, replace=TRUE)
-      
       # Creates a new data matrix
       t1 = input_dat[rows_j, ]
-      
       # Calculates the column sums
       t2 = apply(t1, 2, sum)
-      
       # Counts the number of columns in which any moths were observed
       results_out[i, j] = sum(t2 > 0)
     }
@@ -467,16 +460,33 @@ rarefaction_sampler = function(input_dat, n_iterations)
   return(results_out)
 }
 
-rarefact = rarefaction_sampler(billlength, 1000)
+rarefact = rarefaction_sampler(moths, 1000)
 head(rarefact)
 ```
 Q3.1 Paste your completed rarefaction_sampler() function.
 
 
 
+```{r Q4: rarefaction curve}
+rare_mean = apply(rarefact, 2, mean)
+rare_quant = apply(rarefact, 2, quantile, probs=c(0.025, 0.975))
+rare = t(rbind(rare_mean, rare_quant))
 
+matplot(
+  rare,
+  type='l',
+  xlab='Number of sampling plots',
+  ylab='Species richness',
+  main='Moths Rarefaction Curve')
 
+legend(
+  'bottomright',
+  legend=c('mean','2.5%','97.5%'),
+  lty=c(1,2,3),col=c(1,2,3), inset=c(.1,.1))
 
+```
+Q4:
+moth_rarefact.png
 
 
 

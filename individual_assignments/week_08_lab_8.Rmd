@@ -205,6 +205,16 @@ penboot_hist.png
 
 
 ```{r Q2: flipper bootstrap CI}
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+adelie <- subset(penguin_dat, penguin_dat$species == "Adelie")
+chinstrap <- subset(penguin_dat, penguin_dat$species == "Chinstrap")
+
+meanmod <- function(x){
+  mean(x, na.rm = TRUE)
+}
+
+pen_boot <- two.boot(adelie$flipper_length_mm, chinstrap$flipper_length_mm, meanmod, 1000)
+
 str(pen_boot)
 quantile(pen_boot$t, c(0.025, 0.975))
 ```
@@ -225,7 +235,7 @@ pen_edcf <- ecdf(pen_boot$t)
 # no code needed
 ```
 Q4:
-The null hypothesis is that the mean flipper lengths of adelie and chinstrap penguins does not differ except for by chance alone. The null hypothesis assumes that the difference in flipper length will be approximately 0. If a difference of 0 is contained in the confidence interval determined using the observed data, the null hypothesis cannot be rejected. 
+The null hypothesis is that the mean flipper lengths of adelie and chinstrap penguins does not differ (except for by chance alone). The null hypothesis assumes that the difference in flipper length will be approximately 0. If a difference of 0 is contained in the confidence interval determined using the observed data, the null hypothesis cannot be rejected. 
 
 
 ```{r Q5: flipper bootstrap empirical distribution}
@@ -346,7 +356,10 @@ print(result) # result is a 1000 element vector with monte carlo randomized slop
 
 
 ```{r Q9: Simpson's diversity null distribution}
-quantile(result, c(0.025, 0.975))
+hist(result, main = "Histogram of MC resampled slopes")
+abline(v = c(slope_observed, limit), col = c("blue", "red"), lwd = c(2,2), lty = c("solid", "dotted"))
+class(limit)
+limit <- quantile(result, 0.05)
 ```
 Q9
 Confidence intervals:

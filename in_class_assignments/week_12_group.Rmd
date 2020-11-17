@@ -1,0 +1,37 @@
+---
+title: "week_12_inclass"
+author: "Hailey Erb"
+date: "11/12/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+dat_delomys <- read.csv(here("data", "delomys.csv"))
+
+hist(dat_delomys$body_mass, main = "Histogram of Body Mass")
+hist(dat_delomys$body_length, main = "Histogram of Body Length")
+plot(dat_delomys$body_length ~ dat_delomys$body_mass, main = "Delomys Body Length vs. Mass")
+
+boxplot(dat_delomys$body_mass)
+boxplot(body_mass ~ sex, data = dat_delomys)
+boxplot(body_mass ~ binomial, data = dat_delomys)
+boxplot(body_mass ~ binomial * sex, data = dat_delomys)
+
+dim(dat_delomys)
+
+crossfit <- lm(body_mass ~ binomial * sex, data = dat_delomys)
+anova(crossfit)
+```
+
+
+
+
+
+
+
+
+

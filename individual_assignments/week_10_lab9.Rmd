@@ -1,0 +1,258 @@
+---
+title: 'Lab 9: Using Models II'
+author: "Hailey Erb"
+date: "11/5/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup}
+library(here)
+catrate = read.csv(here("data", "catrate.csv"))
+head(catrate)
+# colnames = pond, success, years, cat.rate
+```
+
+Binomial test for proportions:
+What is the evidence that reproductive success is more likely than reproductive failure? The answer comes from a two-sided binomail test. 
+33 success / 61 total was observed. How likely is this response if success and failure are equally likely?
+
+```{r binomial}
+success = sum(catrate$success)
+years = sum(catrate$years)
+binom.test(success,years) # null = 0.5
+# But late pond-filling occurs approximately 2 out of every 7 years. 
+
+binom.test(success, years, p = 5/7) # predicted 5/7 success rate
+# p-value = 0.004227, i.e. true probability of success is not equal to the predicted probability. BUT we may want to conduct a one-sided test. 
+
+binom.test(success, years, p = 5/7, alternative = "less") 
+# p-value is even smaller. i.e. supports the alternative hypothesis that the true probability of success is less than the predicted probability.
+```
+
+
+Comparison of two sample means requires a test for differences in sample variances. 
+
+```{r variance homogeneity}
+veg = read.csv(here("data", "vegdata.csv"), header=TRUE)
+head(veg)
+# colnames = block, plot, date, treatment, birch, pine, fern
+
+boxplot(pine ~ treatment, data = veg)
+
+# Fisher's F: F-statistic represents the ratio between two variances.
+var.test(
+  pine ~ treatment,
+  data = veg,
+  subset = treatment %in% c('control','clipped')) # super high variance ratio
+
+# note = this assumes normality.
+shapiro.test(veg$pine[veg$treatment=="control"]) # normal
+shapiro.test(veg$pine[veg$treatment=="clipped"]) # not normal
+
+fligner.test(
+  pine ~ treatment,
+  data = veg,
+  subset = treatment %in% c('control','clipped')) # non-parametric test for homogeneity of variances... variance is not the same.
+
+# more than two samples? try this test
+bartlett.test(pine ~ treatment, data=veg) # also super sensitive to non-normality and the presence of outliers
+
+fligner.test(pine ~ treatment, data = veg) # non-parametric alternative
+```
+
+
+Comparing two sample means
+Were our sample means drawn from populations with the same mean?
+
+```{r two-sample mean comparison}
+# t-test (assumes normality)
+t.test(pine~treatment,data=veg,subset=treatment %in% c('control','clipped'), conf.int=TRUE)
+
+# wilcox test (nonparametric)
+wilcox.test(pine~treatment,data=veg,subset=treatment %in% c('control','clipped'), conf.int=TRUE)
+```
+
+
+```{r tests for paired samples}
+# first create separate vectors for control and clipped observations
+control = veg$pine[veg$treatment=='control']
+clipped = veg$pine[veg$treatment=='clipped']
+
+t.test(control, clipped, paired=TRUE)
+wilcox.test(control, clipped, paired=TRUE) # significant, unlike the unpaired wilcox test.
+```
+
+
+MARBLED SALAMANDER
+
+```{r correlations}
+disp = read.csv(here("data", "dispersal.csv"), header=TRUE)
+head(disp)
+# colnames = dist.class, dist.rate.ftb, dist.rate.eb
+plot(disp$disp.rate.ftb, disp$disp.rate.eb)
+cor.test(
+  disp$disp.rate.ftb,
+  disp$disp.rate.eb,
+  use='complete.obs')
+
+cor.test(
+  disp$disp.rate.ftb,
+  disp$disp.rate.eb,
+  use='complete.obs',
+  method='spearman')
+```
+
+
+```{r distribution comparison}
+# the Kolmogorov-Smirnov test asks one of two questions:
+# 1. are two sample distributions the same, or arey they significantly different in one or more (unspecified) ways?
+# 2. does a particular sample distribution arise from a particular hypothesized theoretical distribution?
+
+plot(
+  ecdf(disp$disp.rate.ftb),
+  verticals=TRUE)
+plot(
+  ecdf(disp$disp.rate.eb),
+  verticals=TRUE,
+  lty=3,
+  add=TRUE)
+# are these two distributions different?
+
+ks.test(disp$disp.rate.ftb,disp$disp.rate.eb)
+
+```
+
+
+
+```{r comparing 2+ proportions}
+prop.test(c(4,16),c(40,250))
+```
+
+
+```{r dependence of variables in a contigency table}
+owls = matrix(c(16, 9, 4, 11), nrow=2)
+rownames(owls) = c("present", "absent")
+colnames(owls) = c("old", "young")
+owls
+
+# chi-square: do the observed counts differ from what we would expect if presence/absence was independent of stand age?
+
+# expected value for a cell: multiply row total by column total, then divide by the grand total
+
+chisq.test(owls)
+fisher.test(owls)
+```
+
+
+BIRD HABITAT DATA
+
+Does the presence or absence 
+```{r something}
+birds   = read.csv(here("data", "bird.sta.csv"), header=TRUE)
+hab     = read.csv(here("data", "hab.sta.csv"), header=TRUE)
+birdhab = merge(birds, hab, by=c("basin", "sub", "sta"))
+
+# Create a contingency table for edge/interior and brown creeper presence/absence
+table(birdhab$s.edge, birdhab$BRCR > 0) # contingency table of BRCR presence (1) vs. absence (0) and forest edge (E) vs. interior (I)
+
+# set the presence to be in the first column
+br_creeper_table = table(birdhab$s.edge, birdhab$BRCR > 0)[, 2:1]
+```
+
+
+
+
+QUESTIONS
+
+Q1: homogeneity: penguin body mass and species
+```{r Q1}
+# requires constant variance... check for constant variance
+require(palmerpenguins)
+datpen <- penguins[,c(1, 6, 7)] # species, body_mass_g, sex
+
+boxplot(body_mass_g ~ species, data = datpen)
+shapiro.test(datpen$body_mass_g[datpen$species=="Adelie"]) # p=0.0324
+shapiro.test(datpen$body_mass_g[datpen$species=="Chinstrap"]) # p=0.5605
+shapiro.test(datpen$body_mass_g[datpen$species=="Gentoo"]) # p = 0.2336
+
+bartlett.test(body_mass_g ~ species, data=penguins)
+# Adelie mass distribution is not normal, and chinstrap mass has two outliers, so a bartlett test might not be ideal. 
+# K-squared = 5.9895, p = 0.05005
+
+```
+p = 0.05005
+
+
+Q2: homogeneity: penguin body mass and sex
+```{r Q2}
+bartlett.test(body_mass_g ~ sex, data=penguins)
+```
+p = 0.03194
+
+
+Q3: homogeneity: penguin body mass, sex, and species
+```{r Q3}
+# we want to test for a species/sex interaction.
+# we need to test for homogeneity of variance within each category. 
+
+dat_groups = as.list(aggregate(body_mass_g ~ species * sex, data = penguins, FUN = c))
+
+bartlett.test(dat_groups$body_mass_g)
+
+```
+p = 0.1741 # variance is homogenous!
+
+
+Q4: brown creeper habitat presence/absence
+```{r something}
+owls = matrix(c(16, 9, 4, 11), nrow=2)
+rownames(owls) = c("present", "absent")
+colnames(owls) = c("old", "young")
+owls
+
+# chi-square: do the observed counts differ from what we would expect if presence/absence was independent of stand age?
+
+# expected value for a cell: multiply row total by column total, then divide by the grand total
+
+chisq.test(owls)
+fisher.test(owls)
+
+
+
+birds   = read.csv(here("data", "bird.sta.csv"), header=TRUE)
+hab     = read.csv(here("data", "hab.sta.csv"), header=TRUE)
+birdhab = merge(birds, hab, by=c("basin", "sub", "sta"))
+
+# Create a contingency table for edge/interior and brown creeper presence/absence
+table(birdhab$s.edge, birdhab$BRCR > 0) # contingency table of BRCR presence (1) vs. absence (0) and forest edge (E) vs. interior (I)
+
+# set the presence to be in the first column
+br_creeper_table = table(birdhab$s.edge, birdhab$BRCR > 0)[, 2:1]
+br_creeper_table
+
+chisq.test(br_creeper_table)
+```
+
+Q4.1
+What is the null hypothesis of your test?
+Generally, the null hypothesis of the chi square test is that there is no relationship between the categorical variables included in the analysis. In other words, observed results will not differ significantly from the results that would be predicted if no relationship were present between categorical variables. In terms of brown creeper presence/absence in the interior and edges of measured habitats, the null hypothesis is that there is no relationship between the presence of brown creepers and the sample location (i.e. interior vs. edge). According to the null hypothesis, the relative frequency of creeper abundance should be consistent between interior and edge habitats. 
+
+Q4.2
+The p-value of the performed chi-square test is highly significant, at 1.386e-06. This indicates a strong significance in the difference between the observed brown creeper abundance frequencies and the abundance frequencies that would be expected if there were no relationship between creeper presence and habitat type (interior vs. edge). Brown creepers appear to be associated with interior habitats. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,184 @@
+---
+title: 'Lab 10: Bending the linear model'
+author: "Hailey Erb"
+date: "11/6/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+MANUAL ANOVA
+
+```{r setup}
+require(here)
+rope <- read.csv(here("data", "rope.csv"))
+
+# factor() converts a string into a factor
+rope$rope.type <- factor(rope$rope.type, c("VEL", "BLAZE", "SB", "PI", "BS", "XTC"))
+
+# levels() allows you to view different levels within a factor
+levels(rope$rope.type)
+
+# we need to know n of total obs and n of groups
+n_obs <- length(rope$rope.type)
+n_groups <- length(levels(rope$rope.type))
+```
+
+```{r paritioning variance: total}
+# we need to partition total variance in the response variable into its components: among-group and within-group.
+
+# sum of squares... deterministic model is mean percent cut (of all obs)
+
+ss_tot <- sum((rope$p.cut-mean(rope$p.cut))^2)
+```
+
+```{r partitioning variance: within-group}
+boxplot(p.cut ~ rope.type, data = rope)
+
+# calculate a mean and sum of squares for each group
+# the sum of each individual group's sum of squares is the "sum of squares error (SSE)"
+
+# calculate sum of squares of each group
+
+agg_means <- aggregate(x = rope$p.cut, by = list(rope$rope.type), FUN = mean)
+
+agg_resids <- aggregate(x = rope$p.cut, by = list(rope$rope.type), FUN = function(x) x-mean(x))
+
+agg_sq_resids <- aggregate(x = rope$p.cut, by = list(rope$rope.type), FUN = function(x) (x-mean(x))^2)
+
+agg_sq_resids_sum <- aggregate(x = rope$p.cut, by = list(rope$rope.type), FUN = function(x) sum((x-mean(x))^2)) # FUN = function(x)... AKA anonymous functions
+
+str(agg_sq_resids)
+aggregate(x = agg_sq_resids, by = list(levels(factor(agg_sq_resids$Group.1)), FUN = sum))
+
+ss_within <- sum(agg_sq_resids_sum$x)
+```
+
+```{r partitioning variance: among groups}
+ss_among = ss_tot - ss_within
+```
+
+```{r normalizing}
+# we can't compare sums of squares directly bc numbers of groups are different than the total number of obs. # larger samples will have larger ss residuals, even if the variance is the same.
+
+df_tot = n_obs - 1
+df_within = n_obs - n_groups
+df_among = n_groups - 1
+ss_among
+
+ms_among  =  ss_among / (n_groups - 1)
+ms_within = ss_within / (n_obs - n_groups)
+
+f_ratio = ms_among/ms_within # test statistic
+
+ms_among
+ms_within
+```
+
+
+
+ANOVA THE NORMAL WAY
+
+```{r ANOVA in R}
+fit_1 = lm(p.cut ~ rope.type, data=rope)
+anova_fit_1 = anova(fit_1)
+anova_fit_1
+str(anova_fit_1) # F = 2.23
+
+anova_fit_1$"Sum Sq"
+```
+
+
+
+```{r code template}
+rm(list = ls())
+
+library(here)
+
+rope = read.csv(here("data", "rope.csv"))
+rope$rope.type = factor(rope$rope.type, c("VEL", "BLAZE", "SB", "PI", "BS", "XTC"))
+
+n_obs = length(rope$rope.type)
+n_groups = length(levels(rope$rope.type))
+
+ss_tot = sum((rope$p.cut-mean(rope$p.cut))^2)
+df_tot = n_obs - 1
+
+agg_sq_resids <- aggregate(x = rope$p.cut, by = list(rope$rope.type), FUN = function(x) sum((x-mean(x))^2))
+
+ss_within = sum(agg_sq_resids$x)
+
+df_within = n_obs - n_groups
+
+ss_among = ss_tot - ss_within
+df_among = n_groups - 1
+
+ms_within = ss_within / (n_obs - n_groups)
+ms_among  = ss_among / (n_groups - 1)
+
+f_ratio = ms_among/ms_within
+f_pval = pf(2.2312, df_among, df_within, lower.tail = FALSE)
+```
+
+
+
+
+```{r self check}
+# number comparison tolerance
+digits_check = 5
+
+# Build the reference model using R functions
+fit_1 = lm(p.cut ~ rope.type, data=rope)
+anova(fit_1)
+anova_fit_1 = anova(fit_1)
+
+# Check degrees of freedom
+anova_fit_1$Df == c(df_among, df_within) # TRUE
+
+# Check sums of squares
+round(anova_fit_1$`Sum Sq`, digits = digits_check) == round(c(ss_among, ss_within), digits = digits_check) # TRUE
+
+# Check mean squares
+round(anova_fit_1$`Mean Sq`, digits = digits_check) == round(c(ms_among, ms_within), digits = digits_check) # TRUE
+
+# Check the F-ratio
+round(anova_fit_1$`F value`[1], digits = digits_check) == round(f_ratio, digits = digits_check) # TRUE
+
+# Check the F test statistic p-value
+round(anova_fit_1$`Pr(>F)`[1], digits = digits_check) == round(f_pval, digits = digits_check) # TRUE
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```{r something}
+
+```
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,165 @@
+---
+title: "using models 1"
+author: "Hailey Erb"
+date: "10/22/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+11 vernal ponds 
+
+catrate = catastrophe rate, or the proportion of years with any breeding effort in which the number of emerging juveniles per breeding female (i.e. fecundity) was less than 1. 
+```{r load data}
+library(here)
+catrate <- read.csv(here("data", "catrate.csv"))
+summary(catrate)
+hist(catrate$cat.rate)
+
+
+shapiro.test(catrate$cat.rate) # not normal
+```
+
+
+```{r one sample test}
+# T.TEST IS TWO SIDED BY THE DEFAULT
+t.test(catrate$cat.rate, mu = 0.2857143) # expected (null) catastrophic rate is 0.28 because 2/7 ponds undergo late pond-filling, which can cause desiccation or freezing of eggs prior to desiccation. 
+
+# the observed rate is significantly different (higher) than the predicted rate. 
+
+t.test(catrate$cat.rate, mu = 0.2857143, alternative = "greater") # TWO-SIDED - significance is even greater.
+```
+
+
+```{r non-parametric one-sample test: Wilcoxon rank sum}
+wilcox.test(catrate$cat.rate, mu = (2/7), alternative = "greater")
+```
+One-sample tests are great for comparing a sample mean to a fixed value that we specify.
+
+Two-sample tests are great for comparing the means of two groups of observations. 
+
+Null hypothesis: there is no difference in mean values between the two groups. 
+
+```{r two-sample: Adelie vs. Chinstrap flipper length}
+require(palmerpenguins)
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+summary(penguin_dat)
+boxplot(flipper_length_mm ~ species, data = penguin_dat)
+
+dat_adelie = subset(penguin_dat, species == "Adelie")
+dat_chinstrap = subset(penguin_dat, species == "Chinstrap")
+
+
+shapiro.test(dat_adelie$flipper_length_mm)
+shapiro.test(dat_chinstrap$flipper_length_mm)
+# both are normally distributed, so a standard t-test is appropriate. 
+
+t.test(dat_adelie$flipper_length_mm, dat_chinstrap$flipper_length_mm) # tiny p-value... they definitely differ.
+
+wilcox.test(dat_adelie$flipper_length_mm, dat_chinstrap$flipper_length_mm) # same.
+```
+
+If I want to conduct a one-tailed two-sample test, I will need to determine which sample is the "base level" to determine whether I want to use "greater" or "less" as my tail of interest. 
+
+
+QUESTION 1: 
+```{r Q1: catastophic histogram}
+hist(catrate$cat.rate, main = "Histogram of salamander \nreproduction catastrophic rates", xlab = "Catastrophe rate")
+```
+catrate_hist.png
+
+
+QUESTION 2: 
+```{r Q2: catastrophic normality test}
+shapiro.test(catrate$cat.rate)
+catrate$cat.rate
+```
+paste code: 
+shapiro.test(catrate$cat.rate) # not normal
+
+
+QUESTION 3: 
+The p-value for the Shapiro-Wilk normality test is 0.04097. Because the null hypothesis of this test is that the data are normally distributed, there is evidence for the alternative hypothesis (that data are not normally distributed). However, this does not necessarily mean that the sample came from a non-normally-distributed population. Sampling error (especially considering the small sample size of 13) could have yielded a non-normally-distributed sample despite a normally-distributed population.
+
+
+QUESTION 4: 
+```{r Q4: one-sample t-test}
+t.test(catrate$cat.rate, mu = 2/7) # expected (null) catastrophic rate is 0.28 because 2/7 ponds undergo late pond-filling, which can cause desiccation or freezing of eggs prior to desiccation. 
+
+# the observed rate is significantly different (higher) than the predicted rate. 
+```
+paste
+t.test(catrate$cat.rate, mu = 2/7)
+The null hypothesis of this test is that the average proportion of years in which <1 juvenile salamanders are produced per breeding females is equal to the proportion of years in which late pond-filling occurred (this can cause desiccation or freezing of salamander eggs). 
+
+
+QUESTION 5:
+The p-value of the two-sided one-sample t-test was 0.01193. The confidence interval spans from 0.3526 to 0.7261. The CI does not include zero. The p-value, which is below 0.05, indicates a low probability that the observed data are consistent with the null hypothesis. This can be interpreted as a significant difference between the predicted mean and the observed mean, indicating that there are causes other than late pond-filling for the high observed rates of reproduction catastrophe. The rate proposed by the null hypothesis (2/7) is also outside of the bounds of the CI determined from the observed data. Therefore, there is strong evidence to reject the null hypothesis.  
+
+
+QUESTION 6: 
+```{r Q6: one-sample rank sum test}
+wilcox.test(catrate$cat.rate, mu = 2/7)
+```
+paste
+wilcox.test(catrate$cat.rate, mu = 2/7)
+
+
+QUESTION 7:
+The p-value from the one-sample Wilcoxon rank sum test is 0.006275. There is strong evidence against the null hypothesis that the observed catastrophe rate is equal to the catastrophe rate predicted on the basis of the rate of late pond-filling. The p-value is well below 0.05, indicating a small probability that the observed data are consistent with the null hypothesis. There are likely reasons other than late pond-filling for the high observed catastrophe rate. 
+
+
+QUESTION 8: 
+Considering the results of the shapiro test, which indicated that data were not normally distributed, a non-parametric test such as the Wilcoxon rank sum test is likely more appropriate for the data. However, the results of both tests were consistent with one another: the proportion of years in which <1 juvenile salamanders are produced per breeding females was NOT equal to the proportion of years in which late pond-filling occurred (this can cause desiccation or freezing of salamander eggs)... Or at least there is a small likelihood that the predicted catastrophe rate is within the "bounds" of the observed catastrophe rate. Considering the p-value <0.05 in each test, there is strong evidence against the null hypothesis that the predicted and observed catastrophe rates are equal. There are likely forces other than late pond-filling responsible for the exceedingly high observed catastrophe rates. 
+
+
+QUESTION 9:
+```{r Q9: flipper normality tests}
+require(palmerpenguins)
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+dat_adelie = subset(penguin_dat, species == "Adelie")
+dat_chinstrap = subset(penguin_dat, species == "Chinstrap")
+
+shapiro.test(dat_adelie$flipper_length_mm)
+shapiro.test(dat_chinstrap$flipper_length_mm)
+# both are normally distributed, so a standard t-test is appropriate. 
+```
+paste
+require(palmerpenguins)
+penguin_dat = droplevels(subset(penguins, species != "Gentoo"))
+dat_adelie = subset(penguin_dat, species == "Adelie")
+dat_chinstrap = subset(penguin_dat, species == "Chinstrap")
+shapiro.test(dat_adelie$flipper_length_mm)
+shapiro.test(dat_chinstrap$flipper_length_mm)
+
+Both Adelie and Chinstrap flipper lengths are normally distributed, so a standard t-test is appropriate. 
+
+
+
+QUESTION 10: 
+```{r Q10: flipper histograms}
+par(mfrow = c(1,2))
+
+hist(dat_adelie$flipper_length_mm, main = "Histogram of \nAdelie flipper lengths", xlab = "Flipper length (mm)")
+
+hist(dat_chinstrap$flipper_length_mm, main = "Histogram of \nChinstrap flipper lengths", xlab = "Flipper length (mm)")
+```
+flipper_hist.png
+
+
+QUESTION 11: 
+```{r Q11: two-sample t-test}
+t.test(dat_adelie$flipper_length_mm, dat_chinstrap$flipper_length_mm) 
+```
+The alternative hypothesis of this two-sample t-test is that Adelie penguins have different flipper lengths than Chinstraps. Because we do not care which penguin species has larger or smaller flippers, I used a two-tailed test. The p-value is less than 0.001, indicating that the two penguin species do have flipper lengths that are unlikely to differ by chance alone. 
+
+t.test(dat_adelie$flipper_length_mm, dat_chinstrap$flipper_length_mm) 
+
+
+
+

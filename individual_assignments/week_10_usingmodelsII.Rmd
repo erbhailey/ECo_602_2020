@@ -1,0 +1,129 @@
+---
+title: "Using Models II"
+author: "Hailey Erb"
+date: "11/3/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+Learning objectives:
+- Review 1- and 2-sample t-tests
+- Perform a 1-way Analysis of Variance (ANOVA)
+- Perform a simple- and multiple-linear regression
+- Interpret model coefficient tables
+- Interpret ANOVA tables
+
+
+```{r 1-sample t-test}
+require(palmerpenguins)
+t.test(subset(penguins, species == "Gentoo")$flipper_length_mm) # equal to zero?
+
+t.test(x = subset(penguins, species == "Gentoo")$flipper_length_mm, mu = 218) # equal to 218?
+
+t.test(x = subset(penguins, species == "Gentoo")$flipper_length_mm, mu = 218, alternative = "less") # less than 218?
+```
+
+
+```{r 2-sample t-test}
+t.test(flipper_length_mm ~ species, data = subset(penguins, species != "Chinstrap")) # diff between Adelie and Gentoo?
+```
+
+
+```{r ANOVA}
+# perform data exploration
+# fit a model using lm()
+# examine model coefficient table using summary()
+# conduct analysis of variance using anova()
+
+
+# response variable = body mass (continuous variable on a ratio scale)
+# predictor variable = species (categorical variable on a nominal scale)
+
+# graphical data exploration
+par(mfrow = c(1, 2))
+hist(penguins$body_mass_g, breaks = 80, main = "histogram of body mass", xlab = "body mass (g)")
+plot(density(penguins$body_mass_g, na.rm = TRUE), main = "density plot of body mass") # not normal
+
+dev.off()
+require(palmerpenguins)
+boxplot(body_mass_g ~ species, data = penguins)
+
+
+# are within group data normally distributed?
+dat_chinstrap = subset(penguins, species == "Chinstrap")
+mean(dat_chinstrap$body_mass_g, na.rm = TRUE)
+shapiro.test(dat_chinstrap$body_mass_g)
+
+aggregate(body_mass_g ~ species * sex, data = penguins, FUN = mean) # this is a useful function
+
+# FIT A LINEAR MODEL
+fit_species = lm(body_mass_g ~ species, data = penguins)
+summary(fit_species)
+
+# CONDUCT ANOVA
+anova(fit_species)
+```
+
+```{r two-way ANOVA}
+boxplot(body_mass_g ~ sex * species, data = penguins)
+
+fit_both <- lm(body_mass_g ~ sex * species, data = penguins)
+
+summary(fit_both)
+anova(fit_both)
+```
+
+
+
+QUESTIONS
+
+Q1: two-way ANOVA: graphical exploration
+Yes, male gentoo penguins are likely significantly heavier than female penguins. The difference between the mean mass of male and female penguins is greater for gentoo penguins than it is for adelie or chinstrap penguins. Male gentoos also have the highest mean mass of any other factorial interaction (i.e. males or females of any other species). The mean mass of male gentoos also appears to be significantly higher than the mean mass of females of all species combined. 
+
+
+Q2: two-way ANOVA: graphical exploration
+Yes, I do believe that adding sex to a model that already includes species will improve the model fit. The mean mass of penguins differs between species, but it also differs between sexes. Gentoo penguins have a higher mean mass than other penguin species, and male penguins have a higher mean mass than female penguins. Mass also appears to have a distinct range in each of the categories produced when a boxplot is conditioned on both sex and species. By accounting for these distinct categories (e.g. female gentoo, male chinstrap) and by improving model specificity, we will likely improve model fit. 
+
+
+```{r Q3: two-way ANOVA: build the model}
+boxplot(body_mass_g ~ sex * species, data = penguins)
+
+fit_both <- lm(body_mass_g ~ sex * species, data = penguins)
+
+summary(fit_both)
+anova(fit_both)
+```
+Q3: 
+fit_both <- lm(body_mass_g ~ sex * species, data = penguins)
+
+
+Q4: two-way ANOVA: build the model
+The base case is the intercept of 3368.84. The base case is equal to the mean body mass of female Adelie penguins, which have the lowest mean body mass of all categories. 
+
+
+Q5: model coefficients 1
+The average mass of female chinstrap penguins could be calculated by adding the coefficient value for speciesChinstrap to the (intercept).
+
+
+Q6: model coefficients 1
+The average mass of female chinstrap penguins is approximately 3527.21 grams.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
