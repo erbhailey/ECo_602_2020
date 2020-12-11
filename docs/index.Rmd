@@ -1,22 +1,753 @@
 ---
 title: "ECO 602 Final Project"
+subtitle: "Final Project Template: Data Analysis"
 author: "Hailey Erb"
-date: "10/15/2020"
-output: html_document
+date: "Fall 2020"
+output:
+  html_document:
+    theme: readable
+    toc: TRUE
+    toc_float: TRUE
+editor_options:
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+options(knitr.duplicate.label = TRUE)
+```
+
+<style type="text/css" rel="stylesheet">
+.btn {
+    border-width: 0 0 0 0;
+    font-weight: normal;
+    text-transform: none;
+}
+.btn-default {
+    color: #2ecc71;
+    background-color: #ffffff;
+    border-color: #ffffff;
+}
+</style>
+
+
+
+
+
+# Introduction
+
+This file serves as an introduction to the R programming concepts learned in the Fall 2020 semester of Environmental Data Analysis (ECO 602) at the University of Massachusetts Amherst. We will first review some basic functions in Part 1, then we will apply what we've learned to the model-building process in Part 2. 
+ 
+
+# Part 1: Basic Functions
+
+## Functions 1: Data Structure Functions {.tabset .tabset-pills}
+
+### `c()`
+
+The following is the markdown text needed to reproduce my code example for `c()`:
+
+The function `c()` *combines* or *concatenates* its arguments into a vector (a 1-dimensional data structure consisting of 1 or more elements).
+
+- All of the elements must be of the same *type*.
+  - I can't combine character and numeric types in the same call to `c()`
+
+Here are two examples using numeric and character data types:
+
+```{r c}
+# Create a vector of numbers:
+num.vec  = c(1, 4, 8, 9, 13)
+
+# Create a vector of characters:
+char.vec = c("a", "fish", "data is cool")
+```
+
+I can show the contents of a vector by typing the name of the vector or by using the `print()` function.
+
+```{r print}
+# Typing the name of the vector into the console prints the contents.
+num.vec
+
+# The print() function accomplishes the same task.
+print(char.vec)
+```
+
+### `data.frame()`
+
+The function `data.frame` creates a data frame from a collection of variables. 
+
+- A data frame is a data class sharing many attributes with matrices and lists. 
+- A data frame is a list of variables with the same number of rows which includes unique column and row names. 
+
+Here's an example:
+
+```{r data.frame}
+# build a data frame from scratch:
+framed <- data.frame(
+  letters = c("b", "w", "B"),
+  numbies = c(34, 6, 123454))
+
+# I can print the contents by typing their name.
+framed
+
+# To subset a column by name:
+framed$letters
+
+# To subset a column by index:
+framed[,1]
+```
+
+### `matrix()`
+
+The function `matrix()` creates a matrix (data class) from a given set of values.
+
+- A matrix is a collection of elements arranged in a two-dimensional rectangular layout. 
+
+Here's an example:
+
+```{r matrix}
+# Build a matrix from scratch:
+matted <- matrix(c(1, 2, 3, 4, 5, 6),
+                 nrow = 3,
+                 ncol = 2,
+                 byrow = TRUE) 
+matted
+
+# Note how data are distributed into the matrix row by row. 
+
+# The argument byrow, if FALSE, will direct elements into one column at a time. 
+matflip <- matrix(c(1, 2, 3, 4, 5, 6),
+                  nrow = 3,
+                  ncol = 2,
+                  byrow = FALSE)
+matflip
+
+# The arguments nrow and ncol define the matrix dimensions 
+matflop <- matrix(c(1, 2, 3, 4, 5, 6),
+                  nrow = 2,
+                  ncol = 3,
+                  byrow = TRUE)
+matflop
+```
+
+### `length()`
+
+The function `length()` returns the length of a vector.
+
+```{r length}
+# Applied to a vector, length() yields the number of elements in the vector.
+vec <- c("bees", 14, "knees")
+length(vec)
+
+# Applied to a matrix, length() yields the number of elements used to created the matrix. 
+length(matted)
+
+# Applied to a data frame, length() yields the number of list items, or columns, contained in the data frame 
+length(framed)
+```
+
+### `nrow()` and `ncol()`
+
+The functions `nrow()` and `ncol()` return the numbers of rows or columns present in an object (vector, array, data frame, or NULL).
+
+```{r nrow_ncol}
+nrow(matted)
+ncol(matted)
+```
+
+### `dim()`
+
+The function `dim()` can be used to retrieve or set the dimensions of an R object such as a matrix, array, or data frame. 
+
+```{r dim}
+# Dimensions are returned as an integer vector with length = 2. The first and second values correspond to the number of columns and rows in the object, respectively. 
+
+dim(matted) # 3 columns, 2 rows.
+
+# dim() can also be used to assign dimensions to an object. 
+ethereal <- c(6:81)
+dim(ethereal) <- c(19, 4)
+
+# The results are stored in a matrix.
+ethereal
+class(ethereal)
+```
+
+
+## Functions 2: Numerical Data Exploration  {.tabset .tabset-pills}
+
+### `summary()`
+
+The function `summary()` produces the summary statistics of various objects (e.g. vectors, matrices, data frames) or model fitting functions. 
+
+Here's an example with a basic object:
+
+```{r summary1}
+# For a vector, this summary includes minimum, mean, maximum, and quartile values. 
+
+summary(c(1:15))
+
+# For an object with multiple lists or columns, a summary table will print for each list or column.
+
+summary(ethereal)
+```
+
+Here's an example with a linear model fit:
+
+```{r summary2}
+# We can use also use summary() to examine the results of models, such as a simple linear model. 
+
+# First, we can create a data frame containing mock heights and weights of an unknown population. 
+
+proportional <- data.frame(
+  fakeheight = c(60, 65, 66, 68, 66, 71, 73, 74, 74, 75, 73, 76, 79, 80),
+  fakeweight = c(120, 125, 136, 130, 133, 140, 145, 145, 159, 160, 165, 166, 166, 170))
+
+# We can then fit a linear model to describe the relationship between height on the x and weight on the y. 
+
+cant.relate <- lm(fakeweight ~ fakeheight, data = proportional)
+
+# Let's plot our data and add the linear model for the sake of data visualization and improved understanding. 
+
+plot(fakeweight ~ fakeheight, data = proportional)
+abline(cant.relate)
+
+# Now we'll use summary() to examine the results of the model.
+
+summary(cant.relate)
+
+# y-intercept = -49.6575
+# slope = 2.7552
+# p-value = 1.97e-06
+# nice!
+```
+
+### `mean()`
+
+The function `mean()` returns the arithmetic mean of the values in an R object. 
+
+- Acceptable objects include numeric/logical vectors, date, date-time, and time interval objects. 
+- By default, mean() will return a NULL if NA values are included in the dataset. na.rm = TRUE can be used to ignore NA values.
+
+```{r mean}
+mean(ethereal)
+```
+
+### `sd()`
+
+The function `sd()` returns the standard deviation of the values in an R object. 
+
+- By default, sd() will return a NULL if NA values are included in the dataset. na.rm = TRUE can be used to ignore NA values. 
+
+```{r sd}
+sd(ethereal)
+```
+
+
+## Functions 3: Graphical Data Exploration {.tabset .tabset-pills}
+
+### `par()`
+
+The function `par()` is used to set graphical parameters.
+
+A common application is the creation of multiple "panels," or a matrix of graphical displays. 
+
+```{r par}
+# The mfrow argument sets the dimensions of the graphical matrix. Here we will create a "blank canvas" of size 2 x 2 which will hold the next four plots we create. 
+par(mfrow = c(2,2))
+
+plot(proportional$fakeheight, proportional$fakeweight, col = "blue")
+plot(proportional$fakeheight, proportional$fakeweight, col = "red")
+plot(proportional$fakeheight, proportional$fakeweight, col = "green")
+plot(proportional$fakeheight, proportional$fakeweight, col = "orange")
+
+# dev.off() can be used to reset graphical parameters. 
+
+dev.off()
+
+# All clear!
+```
+
+### `plot()`
+
+I can use `plot()` to create scatterplots.
+
+```{r scatterplot_1, fig.asp=1.0, fig.height=3}
+# load the penguins package:
+library(palmerpenguins)
+
+plot(bill_length_mm ~ body_mass_g, data = penguins, # Using formula notation
+     col = "blue",# col is used to set the color
+     pch = 16, # pch is  used to change the symbol
+     cex = 0.5, # cex indicates the scaling of plotting text and symbols relative to the default (1)
+     main = "Scatterplot of penguin \nbody mass vs. bill length",
+     xlab = "Body mass (g)", 
+     ylab = "Bill length (mm)",
+     xlim = c(2700, 6300), ylim = c(32.10, 59.60)) # xlim and ylim are used to set the range on each axis
+```
+
+### `hist()` 
+
+The function `hist()` creates a histogram of the given data. 
+
+```{r hist}
+par(mfrow = c(1,2)) # Sets graphical parameters
+
+hist(penguins$body_mass_g, main = "Histogram of penguin \nbody mass", xlab = "Body mass")
+
+# The breaks argument can be used to assign to the histogram a certain number of bins. 
+
+hist(penguins$body_mass_g, breaks = 20, main = "Histogram of penguin \nbody mass", xlab = "Body mass")
+
+dev.off() # Resets graphical parameters
+```
+
+### `boxplot()`
+
+The function `boxplot()` creates a box-and-whisker plot of the given data.
+
+```{r boxplot}
+# First we will create a simple boxplot of penguin body mass.
+boxplot(penguins$body_mass_g)
+
+# There seems to be a wide range of body masses. Let's create several boxplots of penguins body mass, conditioned on species. 
+
+boxplot(body_mass_g ~ species, data = penguins)
+
+# Conditioning data on categorical variables can give lots of insight into our data.
 ```
 
 
 
-```{r cars}
+## Functions 4: Distribution Functions {.tabset .tabset-pills}
+
+### `dnorm()`
+
+The function `dnorm()` is the probability density function (PDF) of a normal distribution. It returns the probability of observing value "x" given specific values for mean and standard deviation.
+
+- The default mean and standard deviation of this function are 0 and 1, respectively.
+
+The entire area under the PDF of the normal distribution adds up to 1. `dnorm()` prints the height of the PDF of the normal distribution at the value of "x" you provide.
+
+
+```{r dnorm}
+# default mean and sd are 0 and 1, respectively. These parameters can be set using their corresponding arguments. 
+dnorm(x = 86, mean = 90, sd = 5)
+```
+
+### `pnorm()`
+
+The function `pnorm()` is the cumulative density function (CDF) of a normal distribution. It returns the probability of observing a value equal to or less than "q" given specific values for mean and standard deviation.
+
+A noodle distribution center is offering free noodles. Noodles are scooped onto plates by volunteers. The number of noodles served on each plate follows a normal distribution with a mean of 90 and a standard deviation of 5. You're next in line.
+
+```{r pnorm}
+# What is the probability of obtaining 86 or fewer noodles?
+pnorm(q = 86, mean = 90, sd = 5)
+
+# What is the probability of obtaining a heaping load of... more than 86 noodles?
+pnorm(q = 86, mean = 90, sd = 5, lower.tail = FALSE)
+
+# Alternatively, you can subtract the probability of observing q (86 in this case) or below from 1.
+1-pnorm(q = 86, mean = 90, sd = 5)
+```
+
+### `qnorm()`
+
+The function `qnorm()` is the quantile function of a normal distribution - essentially the inverse of the cumulative density function (CDF). 
+
+This function can be used to determine the value of the "pth" quantile of the normal distribution.
+
+```{r qnorm}
+# What is the 50th quantile of our noodle distribution?
+qnorm(p = 0.5, mean = 90, sd = 5)
+
+# What is the 22nd quantile?
+qnorm(p = 0.22, mean = 90, sd = 5)
+```
+
+### `dbinom()`
+
+The functions `dbinom()`, `pbinom()`, and `qbinom()` deal with binomial distributions. 
+
+The function `dbinom()` returns the value of the probability density function for the binomial distribution. 
+
+In other words, it returns the probability of getting "x" successes in a user-defined number of trials with a user-defined probability of success.
+
+```{r dbinom}
+# What is the probability that 4 basketball-playing Snorgles make their shots if 10 Snorgles are in line for a free throw, and the probability of making a single shot is 15%?
+
+dbinom(x = 4, size = 19, prob = 0.15)
+
+# 17.14% probability
 
 ```
 
+### `pbinom()`
 
-```{r pressure}
+The function `pbinom()` is the cumulative density function (CDF) for the binomial distribution. 
 
+
+```{r pbinom}
+# 10 Snorgles are in line for a free throw. The probability of making a single shot is 15%. What is the probability that 2 or fewer Snorgles make their shots?
+
+pbinom(q = 2, size = 10, prob = 0.15)
+
+# 82.02% probability.
+
+# pbinom() calculates lower tail of the CDF by default. Find the area under the upper tail to solve the following problem.
+
+# What is the probability that more than 4 Snorgles make their shots?
+
+pbinom(q = 3, size = 10, prob = 0.15, lower.tail = FALSE)
+
+# 4.9970% probability. Note that the probability of obtaining "q" successes is included when calculating the lower tail but not the upper tail.
 ```
+
+### `qbinom()`
+
+The function `qbinom()` is the quantile function for the binomial distribution - essentially the inverse of the cumulative density function (CDF). 
+
+This function can be used to determine the value (number of successes) of the "pth" quantile of the binomial distribution.
+
+
+```{r qbinom}
+# Find the 14th quantile of a binomial distribution with 20 trials and a probability of success on each trial of p = 0.3
+
+qbinom(p = 0.14, size = 20, prob = 0.3)
+
+# The 14th quantile corresponds to 4 successes out of 20. 
+```
+
+
+## Functions 5: Other Functions {.tabset .tabset-pills}
+
+### `library()` and `require()`
+
+The functions `library()` and `require()` are used to load and attach add-on packages. 
+
+- Desired packages must be installed prior to the use of these functions.
+
+```{r library}
+# install.packages("here"), if necessary
+library(here) # or require(here)
+require(palmerpenguins) # or library(palmerpenguins)
+
+# We will apply our next function to the palmer penguins data set.
+```
+
+### `subset()`
+
+The function `subset()` selects a portion of an object that meet a user-defined condition. 
+
+Here's an example:
+
+```{r subset}
+# Let's use subset() to create a new data frame from the palmer penguins data set. Here, we program the function to select all rows for which the "species" column reads "Adelie". 
+adelie <- subset(penguins, penguins$species == "Adelie")
+
+dim(penguins)
+dim(adelie) # all 8 columns (variables) are retained, while only rows corresponding to data on adelie penguins are included. 
+```
+
+### `read.csv()`
+
+The function `read.csv()` creates a data frame from a .csv file.
+
+```{r read}
+delthefunky <- read.csv(here("data", "delomys.csv"), header = TRUE, sep = ",")
+
+head(delthefunky)
+```
+
+
+
+
+
+
+
+
+
+# Part 2: Data Anaylsis
+
+To expand on the concepts we learned in Part 1, we will create and analyze models built from the Delomys data set. These data were collected on two species of small mammals in the Atlantic Forest of Brazil. 
+
+## Data Exploration
+
+Before we explore this data set, we need to load the data. 
+```{r load_data}
+delomys <- read.csv(here("data", "delomys.csv"))
+```
+
+We are most interested in delomys body mass and body length. How do these variables relate to one another? Is their relationship affected by categorical variables like species or sex? Before we answer these questions, we will want to have a closer look at the data. 
+
+### Numerical Exploration
+
+Before conducting graphical exploration, we should perform numerical exploration to get a better idea of the data we're working with. 
+
+```{r numerical_exploration}
+# We can use summary() to better understand the distribution of body mass and body length.
+
+summary(delomys$body_mass)
+summary(delomys$body_length)
+
+# We can use a shapiro test to determine whether or not these data are normally distributed. 
+
+shapiro.test(delomys$body_mass)
+shapiro.test(delomys$body_length)
+
+# The two p-values < 0.05 indicate that delomys body mass and body length are both normally distributed. 
+```
+
+Now we can explore our data graphically.
+
+### Graphical Exploration  {.tabset .tabset-pills}
+
+Graphical exploration is critical for understanding our data set. 
+
+#### Scatterplot of body length vs. body mass
+
+First, we will explore the relationship between delomys body length and body mass. Is body mass associated with body mass? Let's create a scatterplot of length and mass to find out. 
+
+```{r delo_scat, fig.height=3.0, fig.asp=1.0}
+plot(delomys$body_length, delomys$body_mass, main = "Scatterplot of Delomys \nBody Length vs. Body Mass", xlab = "Body Length", ylab = "Body Mass")
+```
+
+There appears to be a positive association between body length and body mass. For the most part, this relationship appears linear. There are a smattering of outliers that are exceedingly long but not particularly heavy. 
+
+#### Histograms of body mass and body length
+
+Lets create two histograms to examine the distribution of delomys body length and delomys body mass. 
+
+```{r delo_hist, fig.height=3.0, fig.asp=.75}
+par(mfrow = c(1,2)) # sets graphical parameters
+
+hist(delomys$body_mass, main = "Histogram of Delomys \nBody Masses", xlab = "Body mass")
+
+hist(delomys$body_length, main = "Histogram of Delomys \nBody Lengths", xlab = "Body length")
+
+dev.off() # don't forget to reset your graphical parameters!
+```
+
+Delomys body mass and body length both appear to be normally distributed. These results are consistent with the results of the two shapiro tests performed on these variables. The distribution of body mass appears to be more normal than that of body length. Body masses are more evenly distributed about the mean. In contrast, body length seems to be right skewed (i.e., there are more delomys with lengths below the mean, there are several outliers with much longer bodies).
+
+Because the data appear normal and p-values returned by the shapiro tests were far below 0.05, it can be assumed that both body mass and body length are normally distributed. 
+
+#### Boxplots of body mass
+
+We will now create boxplots to examine the distribution of delomys body masses in relation to two categorical variables (namely, species and sex). Do delomys of different species and sexes differ in body mass? Let's find out. 
+
+First, we can create a boxplot of body mass conditioned on species. 
+
+```{r delo_massbox_byspecies, fig.height=3.0, fig.asp=1.0}
+boxplot(body_mass ~ binomial, data = delomys, main = "Boxplot of Delomys Body Mass \nConditioned on Species")
+```
+
+Compare the previous plot to a boxplot of body mass conditioned on sex. 
+
+```{r delo_massbox_bysex, fig.height=3.0, fig.asp=1.0}
+boxplot(body_mass ~ sex, data = delomys, main = "Boxplot of Delomys Body Mass \nConditioned on Sex")
+```
+
+Note whether there is any evidence of differences in body mass based on species or sex. 
+
+We can extend the application of the boxplot by conditioning body mass on both species and sex. 
+
+```{r delo_massbox_speciesbysex, fig.height=3.0, fig.asp=1.0}
+boxplot(body_mass ~ binomial * sex, data = delomys, main = "Boxplot of Delomys Body Mass \nConditioned on Species and Sex")
+```
+
+There doesn't appear to be a difference in body mass when conditioned on either species or sex, but our final boxplot, conditioned on both species and sex, tells a different story: Delomys dorsalis appear to have slightly greater body masses than Delomys sublineatus. The significance of this difference cannot be determined using graphical exploration, but we will discuss some stastical tests to evaluate these differences later. 
+
+## Model Building
+
+Now that we have sufficiently explored our data, we can proceed with model building. Model building is an iterative process, so let's fit five different models to describe the relationship between delomys body mass and body length. 
+
+### Model 1: A simple linear regression between delomys body length and body mass. 
+```{r fit1}
+# In this model, body length is a function of body mass. 
+
+fit1 <- lm(body_length ~ body_mass, data = delomys)
+anova(fit1)
+```
+
+### Model 2: A one-way ANOVA of delomys body mass, conditioned on sex.
+```{r fit2}
+# Body mass is a function of sex in this model. 
+fit2 <- lm(body_mass ~ sex, data = delomys)
+anova(fit2)
+```
+
+### Model 3: A one-way ANOVA of delomys body mass, conditioned on species. 
+```{r fit3}
+# Body mass is a function of species in this model.
+fit3 <- lm(body_mass ~ binomial, data = delomys)
+anova(fit3)
+```
+
+### Model 4: A two-way additive ANOVA of delomys body mass, conditioned on sex and species. 
+```{r fit4}
+# Body mass is a function of sex and species in this model.
+fit4 <- lm(body_mass ~ sex + binomial, data = delomys)
+anova(fit4)
+```
+
+### Model 5: A two-way factorial ANOVA of delomys body mass, conditioned on sex and species. 
+```{r fit5}
+# In this case, there is an interactive effect between sex and species. 
+fit5 <- lm(body_mass ~ sex * binomial, data = delomys)
+anova(fit5)
+```
+
+
+## Model Diagnostics
+
+We will first visually inspect model residuals by creating histograms to display residual distributions...
+
+```{r resid_hists, fig.height=3.0, fig.width=6.0}
+par(mfrow = c(2,3))
+hist(residuals(fit1))
+hist(residuals(fit2))
+hist(residuals(fit3))
+hist(residuals(fit4))
+hist(residuals(fit5))
+dev.off
+```
+
+We can then conduct shapiro tests on the model residuals to statistically support observed distributions.
+
+```{r shapiro_resids}
+shapiro.test(residuals(fit1))
+shapiro.test(residuals(fit2))
+shapiro.test(residuals(fit3))
+shapiro.test(residuals(fit4))
+shapiro.test(residuals(fit5))
+```
+
+All five shapiro tests returned p-values < 0.05, indicating that the residuals of each model follow a normal distribution. These results are consistent with the normally-distributed appearance of model residual histograms. These models do not violate the assumption of normality. However, the residuals of some models are "more normal" than those of others. Fit2 (mass conditioned on sex) has the highest p-value and as such it is the "least normal" of the five models we constructed. 
+
+## Model Interpretation  {.tabset .tabset-pills}
+
+Since we have fit our five models, we can now interpret and compare them.
+
+### Body Length
+
+Our first model (fit1) is a simple linear regression in which delomys body length is a function of body mass. We will use summary() to view the results of the model.
+
+```{r fit1_results}
+# Recall: fit1 <- lm(body_length ~ body_mass, data = delomys)
+
+knitr::kable(coef(summary(fit1))) # coef() is used to extract model coefficients from the summary table. # knitr::kable() is used for formatting.
+```
+
+Test yourself: 
+
+Q: What is the magnitude of the mass/length relationship?
+- A: 0.8755
+
+Q: What is the expected body length of an an animal that weighs 100g?
+- Recall: y = mx + b
+- A: 76.1247 + 0.8755(100) = 163.6745
+
+Q: What is the expected body length of an animal that weighs 0g?
+- The predicted y-intercept is the expected body length. 
+- A: 76.1247
+
+
+
+### Body Mass: Model Coefficients
+
+We will now examine the model coefficient tables for each of the body mass model fits. 
+
+Model 2: A one-way ANOVA of delomys body mass, conditioned on sex. Recall: fit2 <- lm(body_mass ~ sex, data = delomys)
+```{r fit2_coef}
+knitr::kable(coef(summary(fit2))) 
+```
+
+Model 3: A one-way ANOVA of delomys body mass, conditioned on species. Recall: fit3 <- lm(body_mass ~ binomial, data = delomys)
+```{r fit3_coef}
+knitr::kable(coef(summary(fit3))) 
+```
+
+Model 4: A two-way additive ANOVA of delomys body mass, conditioned on sex and species. Recall: fit4 <- lm(body_mass ~ sex + binomial, data = delomys)
+```{r fit4_coef}
+knitr::kable(coef(summary(fit4))) 
+```
+
+Model 5: A two-way factorial ANOVA of delomys body mass, conditioned on sex and species. Recall: fit5 <- lm(body_mass ~ sex * binomial, data = delomys)
+```{r fit5_coef}
+knitr::kable(coef(summary(fit5))) 
+```
+
+Q: What is the base level for sex?
+- A: Female.
+
+Q: What is the base level for binomial?
+- A: Delomys dorsalis.
+
+Q: Which sex is heavier?
+- A: Male.
+
+Q: Which species is heavier?
+- A: Delomys dorsalis.
+
+
+
+
+### Body Mass: ANOVA
+
+Model 2: A one-way ANOVA of delomys body mass, conditioned on sex.
+```{r fit2_anova}
+# Recall: fit2 <- lm(body_mass ~ sex, data = delomys)
+knitr::kable(anova(fit2))
+```
+
+Model 3: A one-way ANOVA of delomys body mass, conditioned on species.
+```{r fit3_anova}
+# Recall: fit3 <- lm(body_mass ~ binomial, data = delomys)
+knitr::kable(anova(fit3))
+```
+
+Model 4: A two-way additive ANOVA of delomys body mass, conditioned on sex and species.
+```{r fit4_anova}
+# Recall: fit4 <- lm(body_mass ~ sex + binomial, data = delomys)
+knitr::kable(anova(fit4))
+```
+
+Model 5: A two-way factorial ANOVA of delomys body mass, conditioned on sex and species. 
+```{r fit5_anova}
+# Recall: fit5 <- lm(body_mass ~ sex * binomial, data = delomys)
+knitr::kable(anova(fit5))
+```
+
+Q: Are sex and species significant predictors for body mass?
+- A: Yes (p-value < 0.05 for both factors).
+
+Q: Is there a significant interaction?
+- A: No (p-value > 0.05 for interactive effect).
+
+Q: Does the significance (as measured by p-value) of either of the main effects (sex and species) differ much between the single-predictor models, the additive model, and the interactive model?
+- A: The significance of sex differed very slightly between the model conditioned on sex alone (fit2) and the model conditioned on sex and species with no interaction (fit4). The significance of the species effect is consistent between models.
+
+
+
+### Model Comparison: Body Mass
+
+```{r model_comparison}
+AICvec <- c(AIC(fit2), AIC(fit3), AIC(fit4), AIC(fit5))
+AICvec
+```
+
+Q: Which two models have the lowest AIC?
+- A: fit4 and fit5 have the two lowest AICs.
+
+Q: Which of the two models with lowest AIC scores would you select?
+- A: I would select fit4: the two-way additive ANOVA of body mass conditioned on sex and species. 
+
+Q: Explain your decision based on model fit and the complexity/understanding trade-off.
+- A: fit4 is a better model than fit5 for the purpose of predicting delomys body mass on the basis of sex and species. fit4 has an AIC comparable to that of fit5, but fit5 has an interactive effect while fit4 does not. The absence of this interactive effect gives fit4 an advantage. Simpler models are easier to explain and interpret, and the absence of the interactive effect does not reduce model performance. 
+
+
 

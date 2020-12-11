@@ -1,0 +1,531 @@
+---
+title: "lab 11: simulation and power analysis"
+author: "Hailey Erb"
+date: "12/1/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+https://michaelfrancenelson.github.io/eco_602_634_2020/assignments/eco_634/lab_11.html
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here)
+bird <- read.csv(here("data", "bird.sub.csv"))
+hab <- read.csv(here("data", "hab.sub.csv"))
+birdhab <- merge(bird, hab)
+
+# Brown creeper abundance (BRCR) and late successional forest (ls) within birdhab.
+```
+
+
+
+# SIMULATION MODELING 
+
+Simulation is sometimes called forward modeling (because you pick a model and parameters and work forward to predict patterns in the data).
+
+Remember: we use both deterministic and stochastic models to simulate data. 
+
+
+
+
+# POWER ANALYSIS
+
+Statistical power is the probability of a hypothesis test finding an effect if there is one to be found. Power analysis can be used to estimate the minimum sample size required for an experiment, given a desired significance level, effect size, and statistical power. 
+
+e.g. significance level p < 0.05
+i.e. effect size = strength of relationship
+i.e. statistical power = probability of an effect being found given repeated sampling/simulation
+
+
+
+
+
+# SIMULATING STATIC ENVIRONMENTAL PROCESSES
+## Linear regression
+
+We need a deterministic function and a stochastic function to define our model. We will then undergo repeated sampling via simulation to determine the statistical power (probability of statistical significance of model given repeated sampling???)
+
+This is the Frequentist approach to statistical inference!!!
+i.e. how much certainty do we have in our model?
+
+```{r graphical exploration}
+fit_1 <- lm(BRCR ~ ls, data = birdhab) # fit model
+
+# is brown creeper abundance dependent on late successional forest?
+# lets fit and test a linear model to find out.
+
+plot(birdhab$ls, birdhab$BRCR)
+abline(fit_1)
+summary(fit_1) 
+# intercept = 0.0991
+# slope = 0.0058
+```
+
+```{r linear function: deterministic component}
+linear <- function(x, y_int, slope){
+  y = y_int + slope*x
+  print(y)
+} # prints y value for a given x value (deterministic model)
+
+determy <- linear(birdhab$ls, 0.0991, 0.0058)
+sd(birdhab$BRCR-determy)
+
+```
+
+
+
+
+# SIMULATION FUNCTION
+
+I will assemble my deterministic and stochastic functions into a single data simulator
+
+```{r linear function: adding stochasticity}
+linear_simulator <- function(x, y_int, slope, st_dev){
+   y = y_int + slope*x
+   sim = rnorm(length(y), mean = 0, sd = st_dev)
+   print(y + sim)
+} # (deterministic + stochastic model)
+
+
+bestguess <- linear_simulator(birdhab$ls, 0.0991, 0.0058, 0.1388151)
+
+plot(birdhab$ls, birdhab$BRCR)
+plot(birdhab$ls, bestguess)
+
+abline(fit_1)
+
+
+```
+
+
+
+
+# BUILD THE SIMULATION
+
+I retrieve the model coefficients
+
+```{r retrieve model coefficients}
+fit_1_coefs = coefficients(fit_1) # this is convenient!
+str(fit_1_coefs) # no stdev parameter
+
+fit_1_summary = summary(fit_1)
+
+
+# store coefficients as objects (y_int, slope, & st_dev)
+
+sd_obs <- fit_1_summary$sigma
+int_obs <- 0.0991
+slope_obs <- 0.00584
+
+```
+
+```{r simulate the data}
+# first we select predictor (x) values over which to run the simulation. 
+# in this case, we will use the observed range of y.
+
+plot(
+  x = birdhab$ls, 
+  y = linear_simulator(
+    x = birdhab$ls,
+    y_int = int_obs,
+    slope = slope_obs,
+    st_dev = sd_obs
+  ),
+  main = "Simulated Data",
+  xlab = "late-successional forest",
+  ylab = "Brown Creeper Abundance")
+
+# I could also plot the original data, then add the simulated data to the plot. For visualization purposes only. 
+
+```
+
+
+
+
+# POWER ANALYSIS FOR THE LINEAR REGRESSION MODEL
+
+Power analysis = Frequentist statistical power 
+(i.e. chance of model consistency with real data given repeated sampling)
+
+```{r single simulation}
+
+# can we reject the null hypothesis in a single experiment? critical value = 0.05. 
+
+# compare p-value from the simulated model to the critical value. Recall that the p-calue represents the probability of observing our data if the null hypothesis of no relationship were true. 
+
+y_sim = linear_simulator(
+  x = birdhab$ls,
+  y_int = int_obs,
+  slope = slope_obs,
+  st_dev = sd_obs
+)
+
+summary(lm(y_sim ~ birdhab$ls))$coefficients[2,4] # extract p-value
+
+# p value = 8.52e-09
+
+```
+
+```{r repeated simulations}
+
+# to estimate the probability of successfully rejecting the null hypothesis, we have to calculate the proportion of time that the null hypothesis is rejected. 
+
+n_sims = 1000
+p_vals = numeric(n_sims)
+for(i in 1:n_sims)
+{
+  y_sim = linear_simulator(
+    x = birdhab$ls,
+    y_int = int_obs,
+    slope = slope_obs,
+    st_dev = sd_obs
+  )
+  fit_sim = lm(y_sim ~ birdhab$ls)
+  
+  p_vals[i] = summary(fit_sim)$coefficients[2, 'Pr(>|t|)']
+}
+sum(p_vals < 0.05) / n_sims
+
+# 100% rejected null hypothesis
+
+```
+
+```{r quick function for use in simulation}
+linear_sim_fit = function(x, y_int, slope, st_dev)
+{
+  y_sim = linear_simulator(
+    x = x,
+    y_int = y_int,
+    slope = slope,
+    st_dev = st_dev
+  )
+  return(lm(y_sim ~ x))
+}
+```
+
+
+
+
+
+# SIMULATING EFFECT SIZES
+
+Since we don't know the true population values, we want to estimate the statistical power over a range of model parameters.
+
+We can repeat the simulation process multiple times while varying some of its parameters such as model slope or sample size.
+
+This generally involves nested for-loops.
+
+
+```{r simulating effect sizes}
+alpha = 0.05
+n_sims = 10
+p_vals = numeric(n_sims)
+
+n_effect_sizes = 20
+effect_sizes_1 = seq(-.01, .01, length.out = n_effect_sizes)
+
+effect_size_powers = numeric(n_effect_sizes)
+
+for(j in 1:n_effect_sizes)
+{
+  for(i in 1:n_sims)
+  {
+    fit_sim = linear_sim_fit(
+      x = birdhab$ls,
+      y_int = int_obs,
+      slope = effect_sizes_1[j],
+      st_dev = sd_obs
+    )
+    
+    p_vals[i] = summary(fit_sim)$coefficients[2, 'Pr(>|t|)']
+  }
+  effect_size_powers[j] = sum(p_vals < alpha) / n_sims
+}
+
+sim_effect_size = 
+  data.frame(
+    power       = effect_size_powers,
+    effect_size = effect_sizes_1)
+
+
+plot(
+  power ~ effect_size, data = sim_effect_size,
+  type = 'l', xlab = 'Effect size', ylab = 'Power')
+abline(v = coef(fit_1)[2], lty = 2, col = 'red')
+```
+
+```{r simulating sample sizes}
+alpha = 0.05
+n_sims = 1000
+p_vals = numeric(n_sims)
+
+sample_sizes = seq(5, 100)
+sample_size_powers = numeric(length(sample_sizes))
+
+for(j in 1:length(sample_sizes))
+{
+  x_vals = seq(0, 100, length.out = sample_sizes[j])
+  
+  for(i in 1:n_sims)
+  {
+    fit_sim = linear_sim_fit(
+      x = x_vals,
+      y_int = int_obs,
+      slope = slope_obs,
+      st_dev = sd_obs
+    )
+    p_vals[i] = summary(fit_sim)$coefficients[2, 'Pr(>|t|)']
+  }
+  sample_size_powers[j] = sum(p_vals < alpha) / n_sims
+}
+
+
+sim_sample_size = 
+  data.frame(
+    power       = sample_size_powers,
+    sample_size = sample_sizes)
+
+
+plot(
+  power ~ sample_size, data = sim_sample_size,
+  type = 'l', xlab = 'Sample size', ylab = 'Power')
+abline(v = nrow(birdhab), lty = 2, col = 'red')
+```
+
+```{r bivariate power analysis: effect size and sample size}
+alpha = 0.01
+n_sims = 50
+
+p_vals = numeric(n_sims)
+
+n_effect_sizes = 20
+effect_sizes = seq(-.01, .01, length.out = n_effect_sizes)
+sample_sizes = seq(10, 50)
+
+sim_output_2 = matrix(nrow = length(effect_sizes), ncol = length(sample_sizes))
+
+for(k in 1:length(effect_sizes))
+{
+  effect_size = effect_sizes[k]
+  for(j in 1:length(sample_sizes))
+  {
+    x_vals = seq(0, 100, length.out = sample_sizes[j])
+    
+    for(i in 1:n_sims)
+    {
+      fit_sim = linear_sim_fit(
+        x = x_vals,
+        y_int = int_obs,
+        slope = effect_size,
+        st_dev = sd_obs
+      )
+      p_vals[i] = summary(fit_sim)$coefficients[2, 'Pr(>|t|)']
+    }
+    sim_output_2[k, j] = sum(p_vals < alpha) / n_sims
+  }
+  print(paste0("computing effect size ", k," of ", length(effect_sizes)))
+}
+
+sim_n_effect_size = 
+  list(
+    power = sim_output_2,
+    effect_size = effect_sizes,
+    sample_size = sample_sizes
+  )
+
+
+image(sim_n_effect_size$power) # plots as if it were raster data
+
+```
+
+
+
+Plotting 3 dimensional data
+
+```{r contour, static, and 3D plotting}
+# Contour plots are similar to topographic maps. 
+
+contour(x = sim_n_effect_size$effect_size,
+  y = sim_n_effect_size$sample_size,
+  z = sim_n_effect_size$powe)
+
+
+# Static 3D perspective plot
+
+persp(
+  x = sim_n_effect_size$effect_size,
+  y = sim_n_effect_size$sample_size,
+  z = sim_n_effect_size$power,
+  xlab = "beta", ylab = "n", zlab = "power",
+  col = 'lightblue',
+  theta = 30, phi = 30, expand = .75,
+  ticktype = 'detailed')
+
+# Interactive 3D plotting
+
+install.packages("rgl")
+library(rgl)
+
+persp3d(x = sim_n_effect_size$effect_size,
+  y = sim_n_effect_size$sample_size,
+  z = sim_n_effect_size$power,
+  xlab = "beta", ylab = "n", zlab = "power",
+  col = 'lightblue',
+  theta = 30, phi = 30, expand = .75,
+  ticktype = 'detailed')
+
+```
+
+
+
+
+# SAVING R DATA OBJECTS
+
+When doing a simulation study, you may want to save your simulation results so that you don't have to re-run your simulation every time. 
+
+You can save R objects to files using save()
+
+```{r saving R data objects}
+# You can save R objects to a .Rdata file. 
+
+# If you have data stored in a data.frame or matrix, you can write to a text file.
+
+# Here's how I saved the results of the effect size and sample size simulation to a file:
+save(
+  sim_n_effect_size,
+  file = here::here("data", "lab_11_n_effect_sizes.Rdata"))
+
+# And you can load the file like so:
+load(file = here::here("data", "lab_11_n_effect_sizes.Rdata"))
+
+```
+
+
+
+
+LAB ASSIGNMENT:
+
+In our practice, we varied the sample and effect sizes to examine statistical power, but we didn't try varying dispersion in the data. 
+
+
+
+Q1: Dispersion power plot
+
+Review the effect size simulation above. I will carry out a similar simulation on the population standard deviation instead. I will need to decide on the range of standard deviations to test (what was the sd of our model residuals?) Start at the observed sd and explore up to 3 times the observed sd. 
+```{r population dispersion analysis}
+alpha = 0.05
+n_sims = 100
+p_vals = ...
+
+# What was the observed standard deviation?
+sd_obs
+
+# specify the number of different standard deviation values to simulate:
+n_sds = 20
+pop_sds = seq(from = 0.01, to = 1.5, length.out = n_sds)
+
+pop_sd_power = numeric(...)
+
+for(j in 1:length(pop_sds))
+{
+  pop_sd_j = ...
+  for(i in 1:n_sims)
+  {
+    fit_sim = linear_sim_fit(...)
+    p_vals[i] = ...
+  }
+  pop_sd_power[j] = ...
+}
+
+sim_output_dispersion = data.frame(
+  sd = ...,
+  power = ...)
+
+# You should save your simulation results so you don't have to run it every time.
+save(
+  sim_output_dispersion, 
+  file = here::here("data", "lab_ll_dat_dispersion_sim.RData"))
+
+# Line plot of standard deviation (x-axis) and statistical power (y-axis)
+plot(...)
+
+# Add a dotted vertical red line at the observed population standard deviation value.
+abline(v = ...)
+
+```
+
+
+
+Q2: Dispersion contour plot
+
+Can we improve our statistical power with larger sample sizes? I will modify my simulation of population standard deviation to include sample size. 
+```{r population dispersion and sample size analysis}
+
+alpha = 0.05
+
+# Start with a small number
+n_sims = 10
+p_vals = ... 
+
+# What was the observed standard deviation?
+sd_obs
+
+# specify the number of different standard deviation values to simulate:
+# Start with a small number
+n_sds = 20
+pop_sds = seq(from = 0.05, to = , length.out = n_sds)
+
+pop_sd_power = numeric(...)
+
+sample_sizes = seq(5, 100)
+
+sim_output_3 = matrix(...)
+
+for(k in 1:length(pop_sds))
+{
+  pop_sd_k = pop_sds[k]
+  
+  for(j in 1:length(sample_sizes))
+  {
+    x_vals = seq(0, 100, length.out = sample_sizes[j])
+    
+    for(i in 1:n_sims)
+    {
+      fit_sim = ...
+      p_vals[i] = ...
+    }
+    
+    sim_output_3[k, j] = ...
+  }
+  print(paste0("Testing standard deviation ", k, " of ", n_sds))
+}
+
+image(sim_output_3)
+
+sim_3_dat = 
+  list(
+    power       = sim_output_3,
+    sample_size = sample_sizes,
+    pop_sd      = pop_sds)
+
+
+# You should save your simulation results so you don't have to run it every time.
+save(
+  sim_3_dat, 
+  file = here::here("data", "lab_ll_sim_output_dispersion_n_1000.RData"))
+
+
+```
+
+
+Q3: Dispersion interactive plot (rg1)
+
+
+
+
+
+
+
+
